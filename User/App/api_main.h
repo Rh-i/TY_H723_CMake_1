@@ -57,6 +57,8 @@ extern "C"
    */
   void _usb_rx_handler_task(void *argument);
 
+  void _usb_tx_handler_task(void *argument);
+
 
 #ifdef __cplusplus
 }

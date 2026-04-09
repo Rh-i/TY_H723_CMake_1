@@ -2,11 +2,10 @@
 #include "cmsis_os2.h"
 #include "main.h" // IWYU pragma: keep
 #include "stdio.h"
-#include "bsp_usb.h"
 
 /* BSP */
 #include "bsp_usart.hpp"
-
+#include "bsp_usb.hpp"
 
 /* DVC */
 #include "jc2804.hpp"
@@ -16,6 +15,8 @@
 #include "protocol_usart.hpp"
 
 #include "protocol_maixcam.hpp"
+
+#include "data_pack.hpp"
 
 
 /**
@@ -37,6 +38,13 @@ const osThreadAttr_t can_rx_handler_task_attributes = {
   .name       = "can_rx_task",
   .stack_size = 128 * 4,
   .priority   = (osPriority_t)osPriorityNormal,
+};
+
+osThreadId_t usb_tx_task_handle;
+const osThreadAttr_t usb_tx_handler_task_arrtibutes = {
+  .name = "usb_tx_task",
+  .stack_size = 512*4,
+  .priority = (osPriority_t)osPriorityNormal,
 };
 
 osThreadId_t         usb_rx_task_handle;
@@ -80,6 +88,8 @@ void freertos_init()
   /* 创建CAN接收后处理任务 */
   can_rx_task_handle = osThreadNew(_can_rx_handler_task, nullptr, &can_rx_handler_task_attributes);
 
+  usb_tx_task_handle = osThreadNew(_usb_tx_handler_task,nullptr,&usb_tx_handler_task_arrtibutes);
+
   usb_rx_task_handle = osThreadNew(_usb_rx_handler_task, nullptr, &usb_rx_handler_task_arrtibutes);
 
   printf("freertos_init_ok\n");
@@ -102,7 +112,9 @@ void freertos_init()
  *       同时函数参数必须是void *pvParameters。
  */
 
-uint8_t txbuffer[10] = {'H','e','l','l','o','\n','\0'};
+uint8_t a1;
+float f1;
+DataPack testpack;
 /**
  * @brief 默认任务
  *
@@ -119,14 +131,20 @@ extern "C" void _defaultTask(void *argument)
   printf("Default Task Started\n");
   osDelay(1000);
 
-  // motor_yaw.enter_closed_loop();
-  // osDelay(10);
-  // motor_yaw.set_control_mode(3);
-  // osDelay(10);
+  testpack.LinkData(&a1);
+  testpack.LinkData(&f1);
+
+  a1 = 1;
+  f1 = 1.5f;
 
   for (;;)
   {
-    bsp_usb.cdc_write(txbuffer, sizeof(txbuffer));
+    testpack.GetData();
+    a1 ++;
+    f1 +=0.5f;
+    testpack.DistributeData();
+    a1++;
+    f1 += 0.5f;
     osDelay(1000);
   }
 }
@@ -168,9 +186,41 @@ extern "C" void _can_rx_handler_task(void *argument)
   }
 }
 
+uint8_t testdata;
+DataPack txDataPack(0xAA);
+extern "C" void _usb_tx_handler_task(void *argument)
+{
+  (void)argument;
+
+  osStatus_t txStatu;
+
+  /* 链接各模块变量 */
+  txDataPack.LinkData(&testdata);
+
+  printf("USB TX Task Started\n");
+
+  for (;;)
+  {
+    testdata = HAL_GetTick() % 200;
+    txStatu = txDataPack.SendData();
+    if (txStatu != osOK) 
+    {
+      printf("USB TX ERROR!\n");
+    }
+    osDelay(1);
+  }
+}
+
+uint8_t rx_test_data = 0;
+DataPack rxDataPack(0xAA);
 extern "C" void _usb_rx_handler_task(void *argument)
 {
   (void)argument;
+
+  osStatus_t rxStatu;
+
+  /* 链接各模块变量 */
+  rxDataPack.LinkData(&rx_test_data);
 
   printf("USB RX Task Started\n");
 
@@ -178,6 +228,11 @@ extern "C" void _usb_rx_handler_task(void *argument)
   for (;;) 
   {
     bsp_usb.task();
+    rxStatu = rxDataPack.ReceiveData();
+    if (rxStatu != osOK)
+    {
+      printf("USB RX ERROR!");
+    }
     osDelay(1);
   }
 }

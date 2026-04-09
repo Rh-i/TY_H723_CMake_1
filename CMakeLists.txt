@@ -100,6 +100,3 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
 )
 
 target_link_options(${CMAKE_PROJECT_NAME} PRIVATE -u _printf_float)
-
-# Keep bsp_usb filename as .c while implementing C++ class-based abstraction.
-set_source_files_properties(User/Bsp/bsp_usb.c PROPERTIES LANGUAGE CXX)

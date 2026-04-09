@@ -1,11 +1,11 @@
-#ifndef __BSP_USB_H__
-#define __BSP_USB_H__
+#ifndef __BSP_USB_HPP__
+#define __BSP_USB_HPP__
 
 #include <stdbool.h>
 #include <stdint.h>
 
 /**
- * @file bsp_usb.h
+ * @file bsp_usb.hpp
  * @brief TinyUSB 的 BSP 封装接口。
  *
  * @details
@@ -57,9 +57,19 @@ public:
 
   /**
    * @brief 查询 USB CDC 是否就绪可通信。
-   * @return true 已挂载且主机已打开 CDC 端口；false 否则。
+   * @return true 已挂载且满足发送门控条件；false 否则。
    */
   bool is_ready() const;
+
+  /**
+   * @brief 设置发送前是否要求 CDC DTR 置位。
+   * @param enable true 要求 DTR；false 不要求 DTR，仅要求已挂载。
+   *
+   * @note
+   * 某些串口调试助手不会主动拉高 DTR。若遇到已枚举但收不到数据，
+   * 建议关闭该限制（默认已关闭）。
+   */
+  void set_require_dtr(bool enable);
 
   /**
    * @brief 查询设备是否已被主机枚举挂载。
@@ -105,7 +115,8 @@ private:
   BspUsb() = default;
 
   RxCallback rx_callback_ = nullptr;
-  void* rx_user_ctx_ = nullptr;
+  void*      rx_user_ctx_ = nullptr;
+  bool       require_dtr_ = false;
 };
 
 /**
