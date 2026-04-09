@@ -2,8 +2,7 @@
 #include "cmsis_os2.h"
 #include "main.h" // IWYU pragma: keep
 #include "stdio.h"
-#include "usb_device.h"
-#include "usbd_cdc_if.h"
+#include "bsp_usb.h"
 
 /* BSP */
 #include "bsp_usart.hpp"
@@ -113,7 +112,7 @@ extern "C" void _defaultTask(void *argument)
 {
   (void)argument; // 未使用参数
 
-  MX_USB_DEVICE_Init();
+  bsp_usb.init();
   osSemaphoreRelease(usb_init_semaphore_handle); // 初始化完成信号
 
   osDelay(1000);
@@ -127,8 +126,7 @@ extern "C" void _defaultTask(void *argument)
 
   for (;;)
   {
-    // motor_yaw.set_speed(100);
-    CDC_Transmit_HS(txbuffer,sizeof(txbuffer));
+    bsp_usb.cdc_write(txbuffer, sizeof(txbuffer));
     osDelay(1000);
   }
 }
@@ -179,6 +177,7 @@ extern "C" void _usb_rx_handler_task(void *argument)
   osSemaphoreAcquire(usb_init_semaphore_handle,osWaitForever);
   for (;;) 
   {
-    osDelay(10);
+    bsp_usb.task();
+    osDelay(1);
   }
 }

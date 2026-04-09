@@ -62,8 +62,8 @@ void FDCAN1_IT0_IRQHandler(void);
 void TIM1_UP_IRQHandler(void);
 void USART1_IRQHandler(void);
 void USART6_IRQHandler(void);
-void OTG_HS_IRQHandler(void);
 void UART9_IRQHandler(void);
+void OTG_HS_IRQHandler(void);
 /* USER CODE BEGIN EFP */
 
 /* USER CODE END EFP */
