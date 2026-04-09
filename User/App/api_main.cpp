@@ -2,7 +2,8 @@
 #include "cmsis_os2.h"
 #include "main.h" // IWYU pragma: keep
 #include "stdio.h"
-
+#include "usb_device.h"
+#include "usbd_cdc_if.h"
 
 /* BSP */
 #include "bsp_usart.hpp"
@@ -39,6 +40,18 @@ const osThreadAttr_t can_rx_handler_task_attributes = {
   .priority   = (osPriority_t)osPriorityNormal,
 };
 
+osThreadId_t         usb_rx_task_handle;
+const osThreadAttr_t usb_rx_handler_task_arrtibutes = {
+  .name       = "usb_rx_task",
+  .stack_size = 512 * 4,
+  .priority   = (osPriority_t)osPriorityNormal,
+};
+
+osSemaphoreId_t usb_init_semaphore_handle;
+const osSemaphoreAttr_t usb_init_handler_arrtibutes = {
+  .name = "usb_init_semaphore",
+};
+
 
 /**
  * @brief FreeRTOS相关初始化
@@ -62,8 +75,13 @@ void freertos_init()
 
   /* 初始化设备 */
 
+  /* 初始化信号量 */
+  usb_init_semaphore_handle = osSemaphoreNew(1,0,&usb_init_handler_arrtibutes);
+
   /* 创建CAN接收后处理任务 */
   can_rx_task_handle = osThreadNew(_can_rx_handler_task, nullptr, &can_rx_handler_task_attributes);
+
+  usb_rx_task_handle = osThreadNew(_usb_rx_handler_task, nullptr, &usb_rx_handler_task_arrtibutes);
 
   printf("freertos_init_ok\n");
 }
@@ -85,7 +103,7 @@ void freertos_init()
  *       同时函数参数必须是void *pvParameters。
  */
 
-
+uint8_t txbuffer[10] = {'H','e','l','l','o','\n','\0'};
 /**
  * @brief 默认任务
  *
@@ -95,19 +113,23 @@ extern "C" void _defaultTask(void *argument)
 {
   (void)argument; // 未使用参数
 
+  MX_USB_DEVICE_Init();
+  osSemaphoreRelease(usb_init_semaphore_handle); // 初始化完成信号
+
   osDelay(1000);
   printf("Default Task Started\n");
   osDelay(1000);
 
-  motor_yaw.enter_closed_loop();
-  osDelay(10);
-  motor_yaw.set_control_mode(3);
-  osDelay(10);
+  // motor_yaw.enter_closed_loop();
+  // osDelay(10);
+  // motor_yaw.set_control_mode(3);
+  // osDelay(10);
 
   for (;;)
   {
     // motor_yaw.set_speed(100);
-    osDelay(10);
+    CDC_Transmit_HS(txbuffer,sizeof(txbuffer));
+    osDelay(1000);
   }
 }
 
@@ -145,5 +167,18 @@ extern "C" void _can_rx_handler_task(void *argument)
         motor_pitch.on_can_message(&rx_msg);
       }
     }
+  }
+}
+
+extern "C" void _usb_rx_handler_task(void *argument)
+{
+  (void)argument;
+
+  printf("USB RX Task Started\n");
+
+  osSemaphoreAcquire(usb_init_semaphore_handle,osWaitForever);
+  for (;;) 
+  {
+    osDelay(10);
   }
 }

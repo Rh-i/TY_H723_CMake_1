@@ -50,6 +50,13 @@ extern "C"
    */
   void _can_rx_handler_task(void *argument);
 
+  /**
+   * @brief USB接收后处理任务
+   *
+   * @param argument 任务参数
+   */
+  void _usb_rx_handler_task(void *argument);
+
 
 #ifdef __cplusplus
 }

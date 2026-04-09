@@ -53,7 +53,7 @@
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 128 * 4,
+  .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 
@@ -64,6 +64,7 @@ const osThreadAttr_t defaultTask_attributes = {
 
 void _defaultTask(void *argument);
 
+extern void MX_USB_DEVICE_Init(void);
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
 /**
@@ -119,6 +120,8 @@ void MX_FREERTOS_Init(void) {
 /* USER CODE END Header__defaultTask */
 __weak void _defaultTask(void *argument)
 {
+  /* init code for USB_DEVICE */
+  MX_USB_DEVICE_Init();
   /* USER CODE BEGIN _defaultTask */
   /* Infinite loop */
   for(;;)
