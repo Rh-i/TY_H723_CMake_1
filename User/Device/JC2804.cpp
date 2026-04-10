@@ -5,8 +5,8 @@
 
 /* ==================== 全局类成员实例化 ==================== */
 
-jc2804 motor_yaw(&bsp_can1, 2);
-jc2804 motor_pitch(&bsp_can1, 1);
+jc2804 motor_yaw(bsp_can1, 2);
+jc2804 motor_pitch(bsp_can1, 1);
 
 /* USER CODE END */
 
@@ -27,7 +27,7 @@ const float jc2804::TEMPERATURE_SCALE = 0.1f;
  * @param can_interface CAN接口指针
  * @param device_id 设备ID
  */
-jc2804::jc2804(bsp_can* can_interface, uint8_t device_id)
+jc2804::jc2804(bsp_can& can_interface, uint8_t device_id)
 
   : _device_id(device_id),
     _last_request_type(NONE_REQUEST),
@@ -54,13 +54,13 @@ jc2804::~jc2804()
  */
 void jc2804::send_async_command(uint8_t cmd, const uint8_t* data, uint8_t len)
 {
-  if (!_can || len > 8)
+  if (len > 8)
   {
     return;
   }
 
   uint32_t tx_id = 0x600 | _device_id; // 标准帧ID格式：0x600 + DeviceID
-  _can->send(tx_id, const_cast<uint8_t*>(data), len);
+  _can.send(tx_id, const_cast<uint8_t*>(data), len);
 }
 
 
@@ -406,7 +406,7 @@ void jc2804::request_error_info()
  * @brief 解析接收数据
  * @param data 数据指针
  */
-void jc2804::store_received_data(uint8_t* data)
+void jc2804::store_received_data(const uint8_t (&data)[8])
 {
   /* 根据_last_request_type解析数据 */
   switch (_last_request_type)
@@ -488,13 +488,13 @@ void jc2804::store_received_data(uint8_t* data)
  * @param rx_msg 接收消息指针
  * @return 验证结果
  */
-bool jc2804::validate_response(uint8_t expected_cmd, can_rx_msg_t* rx_msg)
+bool jc2804::validate_response(uint8_t expected_cmd, const can_rx_msg_t& rx_msg)
 {
   (void)expected_cmd; // 未使用参数
 
   uint32_t expected_id = 0x580 | _device_id; // 响应ID格式：0x580 + DeviceID
 
-  if (rx_msg->header.Identifier != expected_id)
+  if (rx_msg.header.Identifier != expected_id)
   {
     return false;
   }
@@ -508,7 +508,7 @@ bool jc2804::validate_response(uint8_t expected_cmd, can_rx_msg_t* rx_msg)
  * @brief CAN消息回调处理
  * @param rx_msg CAN接收消息
  */
-void jc2804::on_can_message(can_rx_msg_t* rx_msg)
+void jc2804::on_can_message(const can_rx_msg_t& rx_msg)
 {
   /* 验证消息ID是否属于本设备 */
   if (!validate_response(0, rx_msg))
@@ -516,13 +516,13 @@ void jc2804::on_can_message(can_rx_msg_t* rx_msg)
     return;
   }
 
-  uint8_t received_cmd = rx_msg->data[0];
+  uint8_t received_cmd = rx_msg.data[0];
 
   /* 检查是否是读取响应，并且我们之前确实发送了读取请求 */
   if (((received_cmd == 0x4B || received_cmd == 0x43) && _last_request_type != NONE_REQUEST))
   {
     /* 尝试解析响应数据 */
-    store_received_data(rx_msg->data);
+    store_received_data(rx_msg.data);
   }
 }
 

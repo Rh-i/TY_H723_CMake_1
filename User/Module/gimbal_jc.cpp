@@ -16,7 +16,7 @@
  * @param yaw_motor Yaw轴电机指针
  * @param pitch_motor Pitch轴电机指针
  */
-gimbal_jc::gimbal_jc(jc2804* yaw_motor, jc2804* pitch_motor)
+gimbal_jc::gimbal_jc(jc2804& yaw_motor, jc2804& pitch_motor)
 
   : _yaw_motor(yaw_motor),
     _pitch_motor(pitch_motor)
@@ -46,8 +46,8 @@ void gimbal_jc::init()
   set_position_mode(gimbal_position_mode_e::GIMBAL_POSITION_MODE_FILTER);
 
   /* 初始时设置速度为0，防止电机失控 */
-  _yaw_motor->set_speed(0.0f);
-  _pitch_motor->set_speed(0.0f);
+  _yaw_motor.set_speed(0.0f);
+  _pitch_motor.set_speed(0.0f);
 
   /* 更新状态 */
   _state = gimbal_state_e::GIMBAL_MOTIONLESS;
@@ -62,9 +62,9 @@ void gimbal_jc::set_position_mode(gimbal_position_mode_e mode)
 {
   _control_mode = mode;
   osDelay(10);
-  _yaw_motor->set_control_mode(static_cast<uint8_t>(mode));
+  _yaw_motor.set_control_mode(static_cast<uint8_t>(mode));
   osDelay(10);
-  _pitch_motor->set_control_mode(static_cast<uint8_t>(mode));
+  _pitch_motor.set_control_mode(static_cast<uint8_t>(mode));
 }
 
 
@@ -85,8 +85,8 @@ void gimbal_jc::set_angle(float yaw_angle, float pitch_angle)
     case gimbal_position_mode_e::GIMBAL_POSITION_MODE_FILTER:
     case gimbal_position_mode_e::GIMBAL_POSITION_MODE_PASS:
     default:
-      _yaw_motor->set_absolute_position(yaw_angle);
-      _pitch_motor->set_absolute_position(pitch_angle);
+      _yaw_motor.set_absolute_position(yaw_angle);
+      _pitch_motor.set_absolute_position(pitch_angle);
       break;
   }
 
@@ -108,7 +108,7 @@ void gimbal_jc::set_yaw_angle(float yaw_angle)
     case gimbal_position_mode_e::GIMBAL_POSITION_MODE_FILTER:
     case gimbal_position_mode_e::GIMBAL_POSITION_MODE_PASS:
     default:
-      _yaw_motor->set_absolute_position(yaw_angle);
+      _yaw_motor.set_absolute_position(yaw_angle);
       break;
   }
 
@@ -130,7 +130,7 @@ void gimbal_jc::set_pitch_angle(float pitch_angle)
     case gimbal_position_mode_e::GIMBAL_POSITION_MODE_FILTER:
     case gimbal_position_mode_e::GIMBAL_POSITION_MODE_PASS:
     default:
-      _pitch_motor->set_absolute_position(pitch_angle);
+      _pitch_motor.set_absolute_position(pitch_angle);
       break;
   }
 
@@ -157,9 +157,9 @@ void gimbal_jc::increment_angle(float yaw_offset, float pitch_offset)
  */
 void gimbal_jc::enter_closed_loop()
 {
-  _yaw_motor->enter_closed_loop();
+  _yaw_motor.enter_closed_loop();
   osDelay(10); // 等待电机响应
-  _pitch_motor->enter_closed_loop();
+  _pitch_motor.enter_closed_loop();
   osDelay(10); // 等待电机响应
 }
 
@@ -169,8 +169,8 @@ void gimbal_jc::enter_closed_loop()
  */
 void gimbal_jc::set_zero_point()
 {
-  _yaw_motor->set_origin();
-  _pitch_motor->set_origin();
+  _yaw_motor.set_origin();
+  _pitch_motor.set_origin();
   osDelay(100); // 等待电机响应
 }
 
@@ -192,8 +192,8 @@ gimbal_state_e gimbal_jc::get_state()
  */
 void gimbal_jc::get_motor_data(MotorData& yaw_data, MotorData& pitch_data)
 {
-  yaw_data   = _yaw_motor->get_latest_data_struct();
-  pitch_data = _pitch_motor->get_latest_data_struct();
+  yaw_data   = _yaw_motor.get_latest_data_struct();
+  pitch_data = _pitch_motor.get_latest_data_struct();
 }
 
 
@@ -202,8 +202,8 @@ void gimbal_jc::get_motor_data(MotorData& yaw_data, MotorData& pitch_data)
  */
 void gimbal_jc::stop()
 {
-  _yaw_motor->set_speed(0.0f);
-  _pitch_motor->set_speed(0.0f);
+  _yaw_motor.set_speed(0.0f);
+  _pitch_motor.set_speed(0.0f);
   _state = gimbal_state_e::GIMBAL_MOTIONLESS;
 }
 

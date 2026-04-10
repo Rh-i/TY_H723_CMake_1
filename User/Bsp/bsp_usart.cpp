@@ -5,10 +5,9 @@
 /* USER CODE BEGIN */
 
 /* ==================== 声明串口句柄 ==================== */
-extern UART_HandleTypeDef huart6;
-extern UART_HandleTypeDef huart9;
+extern UART_HandleTypeDef huart1;
 
-#define PRINT_UART &huart6
+#define PRINT_UART &huart1
 
 /**
  * @brief 模板实例化实现
@@ -26,8 +25,8 @@ template class bsp_usart<128,8>;
  * @note 这个 __attribute__((section(".dma_buffer"))) 是把他放到dtcm区域外，在.ld格式文件下实现的
  *
  */
-__attribute__((section(".dma_buffer"))) bsp_usart<128,8> bsp_usart6(&huart6, receive_mode::SINGLE_BUFFER, true, 6); // 添加实例ID为6
-__attribute__((section(".dma_buffer"))) bsp_usart<128,8> bsp_usart9(&huart9, receive_mode::SINGLE_BUFFER, true, 9); // 添加实例ID为9
+__attribute__((section(".dma_buffer"))) bsp_usart<128,8> bsp_usart1(&huart1, receive_mode::SINGLE_BUFFER, true, 1); // 添加实例ID为6
+
 
 /* USER CODE END */
 

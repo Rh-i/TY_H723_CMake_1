@@ -37,7 +37,7 @@ class protocol_usart;
 /**
  * @brief 全局串口协议实例
  */
-extern protocol_usart protocal_usart_9;
+extern protocol_usart protocal_usart_1;
 
 /* USER CODE END */
 
@@ -70,7 +70,7 @@ private:
   /* ==================== 私有成员变量 ==================== */
 
   protocol_frame_t   rx_frame;        ///< 接收用结构体
-  bsp_usart<128,8>* uart_instance;   ///< 使用的串口驱动实例
+  bsp_usart<128,8>*  uart_instance;   ///< 使用的串口驱动实例
   uint8_t            header1;         ///< 自定义帧头1
   uint8_t            header2;         ///< 自定义帧头2
   uint8_t            tail;            ///< 自定义帧尾

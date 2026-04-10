@@ -57,30 +57,32 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define BREAKER2_Pin GPIO_PIN_13
-#define BREAKER2_GPIO_Port GPIOC
-#define BREAKER1_Pin GPIO_PIN_14
-#define BREAKER1_GPIO_Port GPIOC
-#define LED1_Pin GPIO_PIN_9
-#define LED1_GPIO_Port GPIOE
-#define LED2_Pin GPIO_PIN_10
-#define LED2_GPIO_Port GPIOE
-#define LED3_Pin GPIO_PIN_11
-#define LED3_GPIO_Port GPIOE
-#define LED4_Pin GPIO_PIN_12
-#define LED4_GPIO_Port GPIOE
-#define LED5_Pin GPIO_PIN_13
-#define LED5_GPIO_Port GPIOE
-#define LED6_Pin GPIO_PIN_14
-#define LED6_GPIO_Port GPIOE
-#define LED7_Pin GPIO_PIN_15
-#define LED7_GPIO_Port GPIOE
-#define NONE_Pin GPIO_PIN_13
-#define NONE_GPIO_Port GPIOB
+#define POWER_24V_2_Pin GPIO_PIN_13
+#define POWER_24V_2_GPIO_Port GPIOC
+#define POWER_24V_1_Pin GPIO_PIN_14
+#define POWER_24V_1_GPIO_Port GPIOC
+#define POWER_5V_Pin GPIO_PIN_15
+#define POWER_5V_GPIO_Port GPIOC
+#define GYRO_ACC_CS_Pin GPIO_PIN_0
+#define GYRO_ACC_CS_GPIO_Port GPIOC
+#define GYRO_GYRO_CS_Pin GPIO_PIN_3
+#define GYRO_GYRO_CS_GPIO_Port GPIOC
+#define DCMI_PWDN_Pin GPIO_PIN_5
+#define DCMI_PWDN_GPIO_Port GPIOC
+#define GYRO_ACC_INT_Pin GPIO_PIN_10
+#define GYRO_ACC_INT_GPIO_Port GPIOE
+#define GYRO_GYRO_INT_Pin GPIO_PIN_12
+#define GYRO_GYRO_INT_GPIO_Port GPIOE
+#define LCD_CS_Pin GPIO_PIN_15
+#define LCD_CS_GPIO_Port GPIOE
+#define LCD_BLK_Pin GPIO_PIN_10
+#define LCD_BLK_GPIO_Port GPIOB
+#define LCD_RES_Pin GPIO_PIN_11
+#define LCD_RES_GPIO_Port GPIOB
+#define LCD_DC_Pin GPIO_PIN_10
+#define LCD_DC_GPIO_Port GPIOD
 #define KEY_Pin GPIO_PIN_15
 #define KEY_GPIO_Port GPIOA
-#define SPI3_CS_Pin GPIO_PIN_4
-#define SPI3_CS_GPIO_Port GPIOD
 
 /* USER CODE BEGIN Private defines */
 

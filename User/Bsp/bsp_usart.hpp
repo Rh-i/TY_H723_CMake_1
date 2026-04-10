@@ -48,8 +48,7 @@ class bsp_usart;
 
 // 外部声明这些类实例化的对象
 
-extern bsp_usart<128,8> bsp_usart6;
-extern bsp_usart<128,8> bsp_usart9;
+extern bsp_usart<128,8> bsp_usart1;
 
 /* USER CODE END */
 

@@ -7,7 +7,7 @@
 
 /* ==================== 全局对象实例化 ==================== */
 
-dm_imu imu_bmi088(&bsp_can1, 0x58, 0x59);
+dm_imu imu_bmi088(bsp_can1, 0x58, 0x59);
 
 /* USER CODE END */
 
@@ -46,7 +46,7 @@ typedef enum reg_id_e
  * @param device_id 设备ID
  * @param master_id 主机ID
  */
-dm_imu::dm_imu(bsp_can* can_bus, uint8_t device_id, uint8_t master_id)
+dm_imu::dm_imu(bsp_can& can_bus, uint8_t device_id, uint8_t master_id)
 
   : _device_id(device_id),
     _master_id(master_id),
@@ -100,15 +100,10 @@ void dm_imu::init()
  */
 void dm_imu::write_register(uint8_t reg_id, uint32_t data)
 {
-  if (_can_bus == nullptr)
-  {
-    return;
-  }
-
   uint8_t buf[8] = {0xCC, reg_id, CMD_WRITE, 0xDD, 0, 0, 0, 0};
   memcpy(buf + 4, &data, 4);
 
-  _can_bus->send(_device_id, buf, 8);
+  _can_bus.send(_device_id, buf, 8);
 }
 
 
@@ -118,14 +113,9 @@ void dm_imu::write_register(uint8_t reg_id, uint32_t data)
  */
 void dm_imu::read_register(uint8_t reg_id)
 {
-  if (_can_bus == nullptr)
-  {
-    return;
-  }
-
   uint8_t buf[8] = {0xCC, reg_id, CMD_READ, 0xDD, 0, 0, 0, 0};
 
-  _can_bus->send(_device_id, buf, 8);
+  _can_bus.send(_device_id, buf, 8);
 }
 
 
@@ -356,13 +346,13 @@ float dm_imu::uint_to_float(int x_int, float x_min, float x_max, int bits)
  * @brief 更新欧拉角数据
  * @param pData 数据指针
  */
-void dm_imu::update_euler(uint8_t* pData)
+void dm_imu::update_euler(const uint8_t (&data)[8])
 {
   int16_t euler[3];
 
-  euler[0] = static_cast<int16_t>((pData[3] << 8) | pData[2]);
-  euler[1] = static_cast<int16_t>((pData[5] << 8) | pData[4]);
-  euler[2] = static_cast<int16_t>((pData[7] << 8) | pData[6]);
+  euler[0] = static_cast<int16_t>((data[3] << 8) | data[2]);
+  euler[1] = static_cast<int16_t>((data[5] << 8) | data[4]);
+  euler[2] = static_cast<int16_t>((data[7] << 8) | data[6]);
 
   /* 进入临界区：关闭中断并获取互斥锁 */
   uint32_t irq_state = __get_PRIMASK();
@@ -391,12 +381,12 @@ void dm_imu::update_euler(uint8_t* pData)
  * @brief 更新四元数数据
  * @param pData 数据指针
  */
-void dm_imu::update_quaternion(uint8_t* pData)
+void dm_imu::update_quaternion(const uint8_t (&data)[8])
 {
-  int w = pData[1] << 6 | ((pData[2] & 0xF8) >> 2);
-  int x = (pData[2] & 0x03) << 12 | (pData[3] << 4) | ((pData[4] & 0xF0) >> 4);
-  int y = (pData[4] & 0x0F) << 10 | (pData[5] << 2) | ((pData[6] & 0xC0) >> 6);
-  int z = (pData[6] & 0x3F) << 8 | pData[7];
+  int w = data[1] << 6 | ((data[2] & 0xF8) >> 2);
+  int x = (data[2] & 0x03) << 12 | (data[3] << 4) | ((data[4] & 0xF0) >> 4);
+  int y = (data[4] & 0x0F) << 10 | (data[5] << 2) | ((data[6] & 0xC0) >> 6);
+  int z = (data[6] & 0x3F) << 8 | data[7];
 
   /* 进入临界区：关闭中断并获取互斥锁 */
   uint32_t irq_state = __get_PRIMASK();
@@ -426,14 +416,14 @@ void dm_imu::update_quaternion(uint8_t* pData)
  * @brief CAN消息回调处理
  * @param rx_msg CAN接收消息
  */
-void dm_imu::on_can_message(can_rx_msg_t* rx_msg)
+void dm_imu::on_can_message(const can_rx_msg_t& rx_msg)
 {
-  if (rx_msg->data[0] == 0x03)
+  if (rx_msg.data[0] == 0x03)
   {
-    update_euler(rx_msg->data);
+    update_euler(rx_msg.data);
   }
-  else if (rx_msg->data[0] == 0x04)
+  else if (rx_msg.data[0] == 0x04)
   {
-    update_quaternion(rx_msg->data);
+    update_quaternion(rx_msg.data);
   }
 }

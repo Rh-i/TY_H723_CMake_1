@@ -18,6 +18,12 @@
 #include "protocol_maixcam.hpp"
 
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+
 /**
  * @brief 主应用程序初始化（非FreeRTOS）
  *
@@ -50,12 +56,11 @@ const osThreadAttr_t can_rx_handler_task_attributes = {
 void freertos_init()
 {
   /* 初始化BSP设备 */
-  bsp_usart6.init();
-  bsp_usart9.init();
+  bsp_usart1.init();
   bsp_can1.init();
 
   /* 初始化协议层（需要在maixcam之前初始化） */
-  protocal_usart_9.init();
+  protocal_usart_1.init();
 
   /* 初始化MaixCam协议（内部会调用protocal_usart_9） */
   maixcam.init();
@@ -91,7 +96,7 @@ void freertos_init()
  *
  * @param argument 任务参数
  */
-extern "C" void _defaultTask(void *argument)
+void StartDefaultTask(void *argument)
 {
   (void)argument; // 未使用参数
 
@@ -99,15 +104,12 @@ extern "C" void _defaultTask(void *argument)
   printf("Default Task Started\n");
   osDelay(1000);
 
-  motor_yaw.enter_closed_loop();
-  osDelay(10);
-  motor_yaw.set_control_mode(3);
-  osDelay(10);
+  uint8_t data[4] = {'1','2','3','\n'};
 
   for (;;)
   {
-    // motor_yaw.set_speed(100);
-    osDelay(10);
+    bsp_usart1.send(data,4);
+    osDelay(1000);
   }
 }
 
@@ -119,7 +121,7 @@ extern "C" void _defaultTask(void *argument)
  *
  * @param argument 任务参数
  */
-extern "C" void _can_rx_handler_task(void *argument)
+void _can_rx_handler_task(void *argument)
 {
   (void)argument; // 未使用参数
 
@@ -136,14 +138,18 @@ extern "C" void _can_rx_handler_task(void *argument)
       uint32_t device_id = rx_msg.header.Identifier;
 
       /* 查找对应的jc2804实例 */
-      if (device_id == (motor_yaw._device_id + 0x600))
+      if (device_id == (motor_yaw._device_id + 0x580))
       {
-        motor_yaw.on_can_message(&rx_msg);
+        motor_yaw.on_can_message(rx_msg);
       }
-      else if (device_id == (motor_pitch._device_id + 0x600))
+      else if (device_id == (motor_pitch._device_id + 0x580))
       {
-        motor_pitch.on_can_message(&rx_msg);
+        motor_pitch.on_can_message(rx_msg);
       }
     }
   }
 }
+
+#ifdef __cplusplus
+}
+#endif

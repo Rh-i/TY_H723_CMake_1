@@ -55,14 +55,15 @@ void DebugMon_Handler(void);
 void DMA1_Stream0_IRQHandler(void);
 void DMA1_Stream1_IRQHandler(void);
 void DMA1_Stream2_IRQHandler(void);
-void DMA1_Stream3_IRQHandler(void);
-void DMA1_Stream4_IRQHandler(void);
-void DMA1_Stream5_IRQHandler(void);
 void FDCAN1_IT0_IRQHandler(void);
-void TIM1_UP_IRQHandler(void);
+void FDCAN1_IT1_IRQHandler(void);
 void USART1_IRQHandler(void);
-void USART6_IRQHandler(void);
-void UART9_IRQHandler(void);
+void TIM8_UP_TIM13_IRQHandler(void);
+void OTG_HS_IRQHandler(void);
+void UART7_IRQHandler(void);
+void USART10_IRQHandler(void);
+void FDCAN3_IT0_IRQHandler(void);
+void FDCAN3_IT1_IRQHandler(void);
 /* USER CODE BEGIN EFP */
 
 /* USER CODE END EFP */

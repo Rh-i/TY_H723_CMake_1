@@ -12,9 +12,9 @@
  * @details 使用bsp_can和FreeRTOS封装，适用于电赛云台
  *
  * @note 初始化示例
- *       jc2804 motor_yaw(&bsp_can1, 2);    // 创建类对象
+ *       jc2804 motor_yaw(bsp_can1, 2);    // 创建类对象
  *       motor_yaw.init();                  // 初始化电机（在内核初始化之后使用）
- *       motor_yaw.on_can_message(&rx_msg); // 在CAN接收回调处理任务中调用
+ *       motor_yaw.on_can_message(rx_msg); // 在CAN接收回调处理任务中调用
  *
  * @note 控制示例
  *       motor_yaw.enter_closed_loop(); // 进入闭环模式
@@ -73,10 +73,10 @@ public:
 
   /**
    * @brief 构造函数
-   * @param can_interface CAN接口指针
+   * @param can_interface CAN接口引用
    * @param device_id 设备ID
    */
-  jc2804(bsp_can* can_interface, uint8_t device_id);
+  jc2804(bsp_can& can_interface, uint8_t device_id);
 
   /**
    * @brief 析构函数
@@ -240,7 +240,7 @@ public:
    * @brief CAN消息回调处理
    * @param rx_msg CAN接收消息
    */
-  void on_can_message(can_rx_msg_t* rx_msg);
+  void on_can_message(const can_rx_msg_t& rx_msg);
 
 
 private:
@@ -271,7 +271,7 @@ private:
   /* ==================== 私有成员变量 ==================== */
 
   RequestType _last_request_type; ///< 上一次请求类型
-  bsp_can*    _can;               ///< CAN接口指针
+  bsp_can&    _can;               ///< CAN接口引用
   MotorData   latest_data;        ///< 最新数据存储
 
 
@@ -296,16 +296,16 @@ private:
   /**
    * @brief 响应验证
    * @param expected_cmd 期望命令
-   * @param rx_msg 接收消息指针
+   * @param rx_msg 接收消息引用
    * @return 验证结果
    */
-  bool validate_response(uint8_t expected_cmd, can_rx_msg_t* rx_msg);
+  bool validate_response(uint8_t expected_cmd, const can_rx_msg_t& rx_msg);
 
   /**
    * @brief 解析接收数据
-   * @param data 数据指针
+   * @param data 数据数组引用
    */
-  void store_received_data(uint8_t* data);
+  void store_received_data(const uint8_t (&data)[8]);
 };
 
 

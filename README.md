@@ -1,9 +1,5 @@
 # README
 
-> 这个严格意义上是打别的比赛用的，但是工程本身是一个配置好的，触类旁通的，故整理发出
-
-> 写着写着越觉得完全的不需要看底层，直接就能点击即用这个东西，在除了bsp层上是不存在的。写的这个串口协议，感觉大家都得读读源码才知道要干嘛
-
 # todo
 
 小项目先实现：
@@ -18,7 +14,7 @@
 - PID控制算法
 - 自用0.96寸LCD屏驱动
 - 灯 蜂鸣器 按钮 舵机 等等小驱动
-- BMI088 / ICM42688驱动
+- BMI088 / ICM42688 / 国产陀螺仪驱动
 
 ## 具体文件树
 
@@ -52,7 +48,7 @@ root
     └─App           |应用层 / c cpp混编接口层
 
 ```
-> 对这几个层的理解是 板载支持包完全是按照芯片引脚等等信息来写一层封装，在BSP的基础上，一点点的封装出对应的驱动/设备Dvc，然后多个驱动/设备Dvc连接起来，这就是模块层mod。应用层就是把mod和mid的东西都拎出来，变成具体的任务。算法Alg 服务风svc就是穿插在这里面的。
+> 对这几个层的理解是 板载支持包完全是按照芯片引脚等等信息来写一层封装，在BSP的基础上，一点点的封装出对应的驱动/设备Dvc，然后多个驱动/设备Dvc连接起来，这就是模块层Mod。应用层就是把mod和mid的东西都拎出来，变成具体的任务。算法Alg 服务风svc就是穿插在这里面的。
 >
 > 也就是说，移植工程只需重写BSP的接口，就可以完整的用上之前的工程。那就得做到尽可能的解耦，以及树状结构，还有良好的封装。
 
@@ -99,57 +95,40 @@ HAL库也早就写好了cpp调用c的`extern "C"`内容
 
 **最终迭代成使用CMAKE，工程使用C++书写，开盒即用**
 
-# 此处记载为了实现某些功能，修改了ST生成的文件 & NOTE
+# 此处记载：修改了ST生成的文件
 
-USART1 为经过了CH340的type-c接口 可以直连上位机(目前连不上)
 
-USART5 为接收机 只有RX端（SBUS）
-
-两个继电器BREAKER控制XT30的座子是否导通 靠近电源的为1
-
-三路FDCAN
-
-四个舵机口
-
-有SPI Flash
 
 ## CMakeList
 
-为了更方便的添加.c .cpp文件 在CMakeList中写了：
+为了更方便的添加.c .cpp文件 在User文件夹内添加了一个子文件夹的CMakeList.txt
 
 ```bash
-set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS ON)
+add_library(User_lib OBJECT)
 
+target_include_directories(User_lib PUBLIC
+    # Add user defined include paths
+    ${CMAKE_CURRENT_SOURCE_DIR}/Bsp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Device
+    ${CMAKE_CURRENT_SOURCE_DIR}/Module
+    ${CMAKE_CURRENT_SOURCE_DIR}/Middleware/Algorithm
+    ${CMAKE_CURRENT_SOURCE_DIR}/Middleware/Service
+    ${CMAKE_CURRENT_SOURCE_DIR}/App
+)
+target_link_libraries(User_lib PRIVATE stm32cubemx)
 
 # 包含所有的用户.c .cpp
-file(GLOB_RECURSE USER_SOURCES 
+file(GLOB_RECURSE USER_SOURCE
     RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
     CONFIGURE_DEPENDS  # 关键：启用依赖检查
 
-    User/*.c
-    User/*.cpp
+    ../User/*.c
+    ../User/*.cpp
 )
+target_sources(User_lib PRIVATE ${USER_SOURCE})
 
 
-# Add sources to executable
-target_sources(${CMAKE_PROJECT_NAME} PRIVATE 
-    # Add user source
-    ${USER_SOURCES}
-)
 
-
-# Add include paths
-target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
-    # Add user defined include paths
-    ./User/Bsp
-    ./User/Device
-    ./User/Module
-    ./User/Middleware/Algorithm
-    ./User/Middleware/Service
-    ./User/App
-)
 ```
 
 以及在最后一行，添加此内容，增加了对浮点数打印的支持
@@ -210,27 +189,6 @@ __attribute__((section(".dma_buffer"))) 使用这一个缀修饰
 
 ```
 
-## stm32h7xx_it.c
-
-实现idle处理，同样的，需要添加到别的串口位置
-
-```c
-/**
-  * @brief This function handles USART6 global interrupt.
-  */
-void USART6_IRQHandler(void)
-{
-  /* USER CODE BEGIN USART6_IRQn 0 */
-
-  /* USER CODE END USART6_IRQn 0 */
-  HAL_UART_IRQHandler(&huart6);
-  /* USER CODE BEGIN USART6_IRQn 1 */
-  idle_iqr_handler(&huart6); // 添加了这一行，从而实现处理
-
-  /* USER CODE END USART6_IRQn 1 */
-}
-
-```
 
 ## 让clangd 不报头文件未使用的错误（间接使用 clangd识别不出来）
 

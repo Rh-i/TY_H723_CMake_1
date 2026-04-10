@@ -74,10 +74,10 @@ public:
 
   /**
    * @brief 构造函数
-   * @param yaw_motor Yaw轴电机指针
-   * @param pitch_motor Pitch轴电机指针
+   * @param yaw_motor Yaw轴电机引用
+   * @param pitch_motor Pitch轴电机引用
    */
-  gimbal_jc(jc2804* yaw_motor, jc2804* pitch_motor);
+  gimbal_jc(jc2804& yaw_motor, jc2804& pitch_motor);
 
   /**
    * @brief 析构函数
@@ -157,8 +157,8 @@ public:
 private:
   /* ==================== 私有成员变量 ==================== */
 
-  jc2804*                _yaw_motor;                                                                 ///< Yaw轴电机指针
-  jc2804*                _pitch_motor;                                                               ///< Pitch轴电机指针
+  jc2804&                _yaw_motor;                                                                 ///< Yaw轴电机引用
+  jc2804&                _pitch_motor;                                                               ///< Pitch轴电机引用
   gimbal_position_mode_e _control_mode        = gimbal_position_mode_e::GIMBAL_POSITION_MODE_FILTER; ///< 当前控制模式
   gimbal_state_e         _state               = gimbal_state_e::GIMBAL_MOTIONLESS;                   ///< 当前云台状态
   float                  _current_yaw_angle   = 0.0f;                                                ///< 当前Yaw角度

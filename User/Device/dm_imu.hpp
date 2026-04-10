@@ -13,11 +13,11 @@
  *          - 类的实例化及初始化需要在FreeRTOS内核启动后进行
  *
  * @note 实例化与初始化
- *       dm_imu imu_bmi088(&bsp_can1, 0x58, 0x59); // 全局实例化类
+ *       dm_imu imu_bmi088(bsp_can1, 0x58, 0x59); // 全局实例化类
  *       imu_bmi088.init();                        // 需要在freertos内核开启之后去init
  *
  * @note CAN接收处理
- *       imu_bmi088.on_can_message(&rx_msg); // 类似中断回调
+ *       imu_bmi088.on_can_message(rx_msg); // 类似中断回调
  *
  * @note 数据获取
  *       imu_bmi088.change_to_active();                     // 主动发送数据
@@ -123,11 +123,11 @@ public:
   /**
    * @brief 构造函数
    *
-   * @param can_bus 指向bsp_can实例的指针
+   * @param can_bus bsp_can实例引用
    * @param device_id 设备ID
    * @param master_id 主机ID
    */
-  dm_imu(bsp_can* can_bus, uint8_t device_id, uint8_t master_id = 0);
+  dm_imu(bsp_can& can_bus, uint8_t device_id, uint8_t master_id = 0);
 
   /**
    * @brief 析构函数
@@ -253,7 +253,7 @@ public:
    * @brief CAN消息回调处理
    * @param rx_msg CAN接收消息
    */
-  void on_can_message(can_rx_msg_t* rx_msg);
+  void on_can_message(const can_rx_msg_t& rx_msg);
 
 
 private:
@@ -271,15 +271,15 @@ private:
 
   /**
    * @brief 更新欧拉角数据
-   * @param pData 数据指针
+   * @param data 数据数组引用
    */
-  void update_euler(uint8_t* pData);
+  void update_euler(const uint8_t (&data)[8]);
 
   /**
    * @brief 更新四元数数据
-   * @param pData 数据指针
+   * @param data 数据数组引用
    */
-  void update_quaternion(uint8_t* pData);
+  void update_quaternion(const uint8_t (&data)[8]);
 
   /**
    * @brief 处理接收数据
@@ -290,7 +290,7 @@ private:
 
   /* ==================== 私有成员变量 ==================== */
 
-  bsp_can* _can_bus;  ///< CAN总线接口
+  bsp_can& _can_bus;  ///< CAN总线接口引用
   imu_data _imu_data; ///< IMU数据
   char     name[32];  ///< 互斥锁名字
 

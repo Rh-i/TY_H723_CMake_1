@@ -5,17 +5,16 @@
 #include <stdio.h>
 
 
-
 /* USER CODE BEGIN */
 
 /* ==================== 全局类对象实例化 ==================== */
 
-protocol_usart protocal_usart_9(&bsp_usart9, 9);
+protocol_usart protocal_usart_1(&bsp_usart1, 1);
 
 /* ==================== C函数实现 ==================== */
 static inline void protocol_usart_callback(protocol_usart* p_usart)
 {
-  if (p_usart == &protocal_usart_9)
+  if (p_usart == &protocal_usart_1)
   {
     /* 调用MaixCam协议解析函数 */
     maixcam.parse(p_usart->get_rx_cmd(), p_usart->get_rx_data(), p_usart->get_rx_len());
@@ -92,7 +91,7 @@ void _uart_protocol_task_entry(void* argument)
 
     /* 4. 批量读取后续内容 */
     uint8_t remaining_len = self->rx_frame.len + 2;
-    int recv_len = self->uart_instance->receive(payload_buf, remaining_len, 100);
+    int     recv_len      = self->uart_instance->receive(payload_buf, remaining_len, 100);
     if (recv_len < remaining_len)
     {
       /* 数据接收不完整，跳过 */
@@ -137,7 +136,7 @@ void _uart_protocol_task_entry(void* argument)
  * @param h2 帧头2
  * @param t 帧尾
  */
-protocol_usart::protocol_usart(bsp_usart<128,8>* uart_ptr, uint8_t name, uint8_t h1, uint8_t h2, uint8_t t)
+protocol_usart::protocol_usart(bsp_usart<128, 8>* uart_ptr, uint8_t name, uint8_t h1, uint8_t h2, uint8_t t)
 
   : uart_instance(uart_ptr),
     header1(h1),
@@ -147,7 +146,7 @@ protocol_usart::protocol_usart(bsp_usart<128,8>* uart_ptr, uint8_t name, uint8_t
   /* 初始化任务属性成员变量 */
   snprintf(task_name, sizeof(task_name), "uart_protocol_%d", name);
   task_attributes.name       = task_name;
-  task_attributes.stack_size = 512 * 4;  /* 从256*4增加到512*4 */
+  task_attributes.stack_size = 512 * 4; /* 从256*4增加到512*4 */
   task_attributes.priority   = (osPriority_t)osPriorityNormal;
 }
 
@@ -174,7 +173,7 @@ uint8_t protocol_usart::calculate_checksum(uint8_t* data, uint8_t len)
 {
   uint8_t sum = 0;
   /* 使用指针遍历，减少索引操作 */
-  uint8_t* p = data;
+  uint8_t* p     = data;
   uint8_t* p_end = data + len;
   while (p < p_end)
   {

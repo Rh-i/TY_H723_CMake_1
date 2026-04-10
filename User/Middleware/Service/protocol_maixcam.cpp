@@ -10,7 +10,7 @@
 /**
  * @brief 全局MaixCam协议实例
  */
-protocol_maixcam maixcam(&protocal_usart_9);
+protocol_maixcam maixcam(&protocal_usart_1);
 
 /* USER CODE END */
 
