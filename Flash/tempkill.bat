@@ -18,7 +18,6 @@ del *.d /s
 del *.axf /s
 del *.tra /s
 del *.dep /s           
-del JLinkLog.txt /s
 
 del *.iex /s
 del *.htm /s

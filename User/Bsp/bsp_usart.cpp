@@ -2,35 +2,6 @@
 #include "string.h"
 #include <stdio.h>
 
-/* USER CODE BEGIN */
-
-/* ==================== 声明串口句柄 ==================== */
-extern UART_HandleTypeDef huart1;
-
-#define PRINT_UART &huart1
-
-/**
- * @brief 模板实例化实现
- * @param 第一个数字为缓冲区大小（uint8_t）
- * @param 第二个数字为消息队列的长度（uint8_t）
- *
- */
-template class bsp_usart<128,8>;
-
-/**
- * @brief 全局实例化
- * @param 第一个串口句柄
- * @param 第二个是串口接收模式
- * @param 第三个是是否启用发送逻辑
- * @note 这个 __attribute__((section(".dma_buffer"))) 是把他放到dtcm区域外，在.ld格式文件下实现的
- *
- */
-__attribute__((section(".dma_buffer"))) bsp_usart<128,8> bsp_usart1(&huart1, receive_mode::SINGLE_BUFFER, true, 1); // 添加实例ID为6
-
-
-/* USER CODE END */
-
-
 /**
  * @brief 静态成员变量定义
  * @note 模板类的静态成员需要在cpp文件中进行定义
@@ -48,20 +19,7 @@ size_t bsp_usart<BUFFER_SIZE, MSG_SIZE>::_instance_count = 0;
 
 extern "C"
 {
-  /**
-   * @brief ARM_GCC UART6 串口重定向、但阻塞 (printf)、使用了cubemx自带的设置，为重定向自动加锁
-   * @note extern "C" 的原因是，这些函数是覆盖在原来weak弱定义上的，不能被cpp进行名称修饰
-   */
-  int __io_putchar(int ch)
-  {
-    HAL_UART_Transmit(PRINT_UART, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
-    return ch;
-  }
-  int _write(int fd, char *ptr, int len)
-  {
-    HAL_UART_Transmit(PRINT_UART, (uint8_t *)ptr, len, HAL_MAX_DELAY);
-    return len;
-  }
+
 
   /**
    * @brief IDLE串口回调函数

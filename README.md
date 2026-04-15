@@ -69,7 +69,7 @@ root
 
 Cortex-Debug可以看rtos的简单运行情况，内存使用情况，查看变量等等
 
-但是后来我们应该可以换到linux下，虽然这些win也可以用：Cortex-Debug + Ozone（调试 JLink DAP适配没JLink好）+ LinkScope + Systemviewer/FreeMaster（RTOS相关）
+但是后来我们应该可以换到linux下，虽然这些win也可以用：Cortex-Debug + Ozone（调试 JLink）+ Systemviewer（RTOS相关）
 
 ## 如何开发
 
@@ -101,33 +101,21 @@ HAL库也早就写好了cpp调用c的`extern "C"`内容
 
 ## CMakeList
 
-为了更方便的添加.c .cpp文件 在User文件夹内添加了一个子文件夹的CMakeList.txt
+为了更方便的添加.c .cpp文件 在User文件夹内添加了一个子文件夹的CMakeLists.txt
+
+现在只需要在主CMakeLists.txt的最后一行添加：
 
 ```bash
-add_library(User_lib OBJECT)
+##### User #####
+add_subdirectory(User)
 
-target_include_directories(User_lib PUBLIC
-    # Add user defined include paths
-    ${CMAKE_CURRENT_SOURCE_DIR}/Bsp
-    ${CMAKE_CURRENT_SOURCE_DIR}/Device
-    ${CMAKE_CURRENT_SOURCE_DIR}/Module
-    ${CMAKE_CURRENT_SOURCE_DIR}/Middleware/Algorithm
-    ${CMAKE_CURRENT_SOURCE_DIR}/Middleware/Service
-    ${CMAKE_CURRENT_SOURCE_DIR}/App
+target_link_libraries(${CMAKE_PROJECT_NAME}
+    User_lib
+
 )
-target_link_libraries(User_lib PRIVATE stm32cubemx)
 
-# 包含所有的用户.c .cpp
-file(GLOB_RECURSE USER_SOURCE
-    RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
-    CONFIGURE_DEPENDS  # 关键：启用依赖检查
-
-    ../User/*.c
-    ../User/*.cpp
-)
-target_sources(User_lib PRIVATE ${USER_SOURCE})
-
-
+target_link_options(${CMAKE_PROJECT_NAME} PRIVATE -u _printf_float)
+##### User #####
 
 ```
 

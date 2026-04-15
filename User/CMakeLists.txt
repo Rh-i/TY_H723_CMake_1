@@ -1,3 +1,9 @@
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS ON)
+
+enable_language(C CXX ASM)
+
 add_library(User_lib OBJECT)
 
 target_include_directories(User_lib PUBLIC

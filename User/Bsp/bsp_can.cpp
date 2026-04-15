@@ -5,25 +5,6 @@
 #include <stdio.h>
 
 
-/* USER CODE BEGIN */
-
-/* ==================== 声明CAN句柄 ==================== */
-extern FDCAN_HandleTypeDef hfdcan1;
-
-
-/* ==================== 全局实例化 ==================== */
-
-/**
- * @brief 全局实例化
- * @param CAN句柄
- * @param 实例名称（用于资源命名）
- * @param CAN工作模式（默认正常模式）
- */
-bsp_can bsp_can1(&hfdcan1, "CAN1");
-
-/* USER CODE END */
-
-
 /* ==================== 模板静态成员初始化 ==================== */
 bsp_can *bsp_can::_instances[bsp_can::MAX_INSTANCES] = {nullptr};
 size_t   bsp_can::_instance_count                    = 0;

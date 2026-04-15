@@ -40,19 +40,6 @@
 #include "usart.h" // IWYU pragma: keep
 
 
-/* USER CODE BEGIN */
-
-// 前向声明
-template <size_t BUFFER_SIZE, size_t MSG_SIZE>
-class bsp_usart;
-
-// 外部声明这些类实例化的对象
-
-extern bsp_usart<128,8> bsp_usart1;
-
-/* USER CODE END */
-
-
 /**
  * @brief 接收模式枚举
  *

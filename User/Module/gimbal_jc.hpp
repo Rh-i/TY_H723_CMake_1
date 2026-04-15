@@ -27,7 +27,7 @@
 #define __GIMBAL_JC_HPP__
 
 
-#include "jc2804.hpp"
+#include "JC2804.hpp"
 
 
 /* USER CODE BEGIN*/

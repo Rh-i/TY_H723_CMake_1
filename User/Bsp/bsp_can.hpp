@@ -45,28 +45,10 @@
 #ifndef __BSP_CAN_HPP__
 #define __BSP_CAN_HPP__
 
-#include "cmsis_os2.h" 
-#include "fdcan.h"     // IWYU pragma: keep
-#include "FreeRTOS.h"  // IWYU pragma: keep
-#include "task.h"      
-
-
-/* USER CODE BEGIN */
-
-/* ==================== 外部声明 ==================== */
-
-// 前向声明
-class bsp_can;
-
-/**
- * @brief 全局实例化
- * @param CAN句柄
- * @param 实例名称（用于资源命名）
- * @param CAN工作模式（默认正常模式）
- */
-extern bsp_can bsp_can1;
-
-/* USER CODE END */
+#include "cmsis_os2.h"
+#include "fdcan.h"    // IWYU pragma: keep
+#include "FreeRTOS.h" // IWYU pragma: keep
+#include "task.h"
 
 
 /**

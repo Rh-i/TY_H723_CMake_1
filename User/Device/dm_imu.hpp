@@ -28,8 +28,7 @@
 #ifndef __DM_IMU_HPP__
 #define __DM_IMU_HPP__
 
-#include "bsp_can.hpp"
-
+#include "bsp_cfg.hpp"
 
 /* USER CODE BEGIN */
 

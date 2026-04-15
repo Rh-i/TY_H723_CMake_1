@@ -1,11 +1,12 @@
 /**
- * @file jc2804.hpp
+ * @file JC2804.hpp
  * @author Rh
  * @brief 俱瓷科技JC2804电机驱动
  * @version 0.1
  * @date 2026-02-13
  *
- * @todo 可扩展更多电机型号支持
+ * @todo 这个库写的非常简陋，很多功能没测
+ *       可扩展更多电机型号支持
  *
  * @copyright Copyright (c) 2026
  *
@@ -13,24 +14,24 @@
  *
  * @note 初始化示例
  *       jc2804 motor_yaw(bsp_can1, 2);    // 创建类对象
- *       motor_yaw.init();                  // 初始化电机（在内核初始化之后使用）
+ *       motor_yaw.init();                 // 初始化电机（在内核初始化之后使用）
  *       motor_yaw.on_can_message(rx_msg); // 在CAN接收回调处理任务中调用
  *
  * @note 控制示例
- *       motor_yaw.enter_closed_loop(); // 进入闭环模式
+ *       motor_yaw.enter_closed_loop();    // 进入闭环模式
  *       osDelay(100);
- *       motor_yaw.set_control_mode(1); // 进入速度模式
+ *       motor_yaw.set_control_mode(1);    // 进入速度模式
  *       osDelay(100);
- *       motor_yaw.set_speed(0);        // 设置速度0（防止失控）
+ *       motor_yaw.set_speed(0);           // 设置速度0（防止失控）
  *       osDelay(100);
- *       motor_yaw.set_speed(100);      // 设置速度100（正常操控）
+ *       motor_yaw.set_speed(100);         // 设置速度100（正常操控）
  */
 
 #ifndef __JC2804_HPP__
 #define __JC2804_HPP__
 
 
-#include "bsp_can.hpp"
+#include "bsp_cfg.hpp"
 
 
 /* USER CODE BEGIN */
