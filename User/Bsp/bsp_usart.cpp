@@ -2,6 +2,16 @@
 #include "string.h"
 #include <stdio.h>
 
+/* ==================== 模板实例化 ==================== */
+
+/**
+ * @brief 模板实例化实现
+ * @param 第一个数字为缓冲区大小（uint8_t）
+ * @param 第二个数字为消息队列的长度（uint8_t）
+ *
+ */
+template class bsp_usart<128, 8>;
+
 /**
  * @brief 静态成员变量定义
  * @note 模板类的静态成员需要在cpp文件中进行定义

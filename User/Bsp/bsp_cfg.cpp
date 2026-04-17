@@ -7,17 +7,6 @@ extern FDCAN_HandleTypeDef hfdcan1;
 extern UART_HandleTypeDef  huart1;
 
 
-/* ==================== 模板实例化 ==================== */
-
-/**
- * @brief 模板实例化实现
- * @param 第一个数字为缓冲区大小（uint8_t）
- * @param 第二个数字为消息队列的长度（uint8_t）
- *
- */
-template class bsp_usart<128, 8>;
-
-
 /* ==================== 串口重定向 ==================== */
 
 #define PRINT_UART huart1

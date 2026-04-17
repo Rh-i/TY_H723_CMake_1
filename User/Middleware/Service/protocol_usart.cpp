@@ -1,4 +1,4 @@
-#include "bsp_usart.hpp"
+#include "bsp_cfg.hpp"
 #include "protocol_maixcam.hpp"
 #include "protocol_usart.hpp"
 #include "string.h"
@@ -9,7 +9,7 @@
 
 /* ==================== 全局类对象实例化 ==================== */
 
-protocol_usart protocal_usart_1(&bsp_usart1, 1);
+protocol_usart protocal_usart_1(bsp_usart1, 1);
 
 /* ==================== C函数实现 ==================== */
 static inline void protocol_usart_callback(protocol_usart* p_usart)
@@ -37,10 +37,6 @@ void _uart_protocol_task_entry(void* argument)
   /* 通过argument获取类指针 */
   protocol_usart* self = static_cast<protocol_usart*>(argument);
 
-  if (self->uart_instance == nullptr)
-  {
-    return;
-  }
 
   printf("UART Protocol Task Started\n");
 
@@ -52,7 +48,7 @@ void _uart_protocol_task_entry(void* argument)
   for (;;)
   {
     /* 1. 寻找帧头：先同步第一个包头 */
-    if (self->uart_instance->receive(&header_buf[0], 1, osWaitForever) <= 0)
+    if (self->uart_instance.receive(&header_buf[0], 1, osWaitForever) <= 0)
     {
       continue;
     }
@@ -66,7 +62,7 @@ void _uart_protocol_task_entry(void* argument)
     }
 
     /* 2. 读取剩余的帧头部分 */
-    if (self->uart_instance->receive(&header_buf[1], 3, 100) < 3)
+    if (self->uart_instance.receive(&header_buf[1], 3, 100) < 3)
     {
       continue;
     }
@@ -91,7 +87,7 @@ void _uart_protocol_task_entry(void* argument)
 
     /* 4. 批量读取后续内容 */
     uint8_t remaining_len = self->rx_frame.len + 2;
-    int     recv_len      = self->uart_instance->receive(payload_buf, remaining_len, 100);
+    int     recv_len      = self->uart_instance.receive(payload_buf, remaining_len, 100);
     if (recv_len < remaining_len)
     {
       /* 数据接收不完整，跳过 */
@@ -136,7 +132,7 @@ void _uart_protocol_task_entry(void* argument)
  * @param h2 帧头2
  * @param t 帧尾
  */
-protocol_usart::protocol_usart(bsp_usart<128, 8>* uart_ptr, uint8_t name, uint8_t h1, uint8_t h2, uint8_t t)
+protocol_usart::protocol_usart(bsp_usart<128, 8>& uart_ptr, uint8_t name, uint8_t h1, uint8_t h2, uint8_t t)
 
   : uart_instance(uart_ptr),
     header1(h1),
@@ -191,7 +187,9 @@ uint8_t protocol_usart::calculate_checksum(uint8_t* data, uint8_t len)
  */
 void protocol_usart::send(uint8_t cmd, uint8_t* data, uint8_t len)
 {
-  if (uart_instance == nullptr)
+  /* 注意：uart_instance 是引用类型，构造时已绑定，无需空检查 */
+  /* 有效性检查由调用者保证 */
+  if (data == nullptr || len > 64)
   {
     return;
   }
@@ -210,7 +208,7 @@ void protocol_usart::send(uint8_t cmd, uint8_t* data, uint8_t len)
   tx_buf[4 + len] = calculate_checksum(tx_buf, 4 + len);
   tx_buf[5 + len] = tail;
 
-  uart_instance->send(tx_buf, 6 + len, 10);
+  uart_instance.send(tx_buf, 6 + len, 10);
 }
 
 

@@ -50,7 +50,7 @@ EOF
 # 执行 J-Link
 # 确保 JLink 命令在 PATH 中，或者使用完整路径 (例如 /opt/SEGGER/JLink/JLink)
 if command -v JLink &> /dev/null; then
-    JLink -CommanderScript "$TEMP_SCRIPT"
+    JLinkExe -CommanderScript "$TEMP_SCRIPT"
 else
     echo "Error: JLink command not found. Please ensure SEGGER J-Link software is installed and in PATH."
     # 清理临时文件

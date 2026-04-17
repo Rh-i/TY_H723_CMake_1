@@ -5,7 +5,7 @@
 
 
 /* BSP */
-#include "bsp_usart.hpp"
+#include "bsp_cfg.hpp"
 
 
 /* DVC */

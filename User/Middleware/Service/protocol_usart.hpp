@@ -70,7 +70,7 @@ private:
   /* ==================== 私有成员变量 ==================== */
 
   protocol_frame_t   rx_frame;        ///< 接收用结构体
-  bsp_usart<128,8>*  uart_instance;   ///< 使用的串口驱动实例
+  bsp_usart<128,8>&  uart_instance;   ///< 使用的串口驱动实例
   uint8_t            header1;         ///< 自定义帧头1
   uint8_t            header2;         ///< 自定义帧头2
   uint8_t            tail;            ///< 自定义帧尾
@@ -109,7 +109,7 @@ public:
    * @param h2 帧头2（默认0x55）
    * @param t 帧尾（默认0x0D）
    */
-  protocol_usart(bsp_usart<128,8>* uart_ptr, uint8_t name, uint8_t h1 = 0xAA, uint8_t h2 = 0x55, uint8_t t = 0x0C);
+  protocol_usart(bsp_usart<128,8>& uart_ptr, uint8_t name, uint8_t h1 = 0xAA, uint8_t h2 = 0x55, uint8_t t = 0x0C);
 
 
   /* ==================== 公共接口 ==================== */
