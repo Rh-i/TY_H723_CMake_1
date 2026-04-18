@@ -24,13 +24,6 @@ void app_init()
 
 /* ==================== 任务句柄定义 ==================== */
 
-osThreadId_t         can_rx_task_handle; ///< CAN接收后处理任务句柄
-const osThreadAttr_t can_rx_handler_task_attributes = {
-  .name       = "can_rx_task",
-  .stack_size = 128 * 4,
-  .priority   = (osPriority_t)osPriorityNormal,
-};
-
 osThreadId_t         usb_tx_task_handle;
 const osThreadAttr_t usb_tx_handler_task_arrtibutes = {
   .name       = "usb_tx_task",
@@ -69,13 +62,10 @@ void freertos_init()
   /* 初始化设备 */
 
   /* 初始化信号量 */
+
+  // @Choose-B 记得修改这些任务和信号量的定义。这些内容其实bsp_usb.init()，这个里面就可以实现，具体的参考我的写法。这样太脏了耦合度比较高，变量啥的都封装进去。然后尽力把tinyusb变成一个对象库
+
   usb_init_semaphore_handle = osSemaphoreNew(1, 0, &usb_init_handler_arrtibutes);
-
-  /* 创建接收后处理任务 */
-
-  // @Choose-B 记得修改这些任务和信号量的定义。这些内容其实bsp_usb.init()，这个里面就可以实现，具体的参考我的写法。这样太脏了耦合度比较高，变量啥的都封装进去
-
-  can_rx_task_handle = osThreadNew(_can_rx_handler_task, nullptr, &can_rx_handler_task_attributes);
 
   usb_tx_task_handle = osThreadNew(_usb_tx_handler_task, nullptr, &usb_tx_handler_task_arrtibutes);
 
@@ -101,15 +91,16 @@ void freertos_init()
  *       同时函数参数必须是void *pvParameters。
  */
 
-uint8_t  a1;
-float    f1;
+uint8_t   a1;
+float     f1;
 data_pack test_pack;
 /**
- * @brief 默认任务
+ * @brief 默认任务，这个原本命名为_start_default_task。但是每次开FreeRTOS这个里面，默认是这个名字
  *
+ * @note 保留这个名字，但是其他任务要类似：_start_default_task
  * @param argument 任务参数
  */
-extern "C" void _defaultTask(void *argument)
+extern "C" void StartDefaultTask(void *argument)
 {
   (void)argument; // 未使用参数
 
@@ -139,33 +130,8 @@ extern "C" void _defaultTask(void *argument)
 }
 
 
-/**
- * @brief CAN接收后处理任务
- *
- * @note 处理从CAN总线接收到的数据，根据设备ID分发到对应的电机处理
- *
- * @param argument 任务参数
- */
-extern "C" void _can_rx_handler_task(void *argument)
-{
-  (void)argument; // 未使用参数
-
-  printf("CAN RX Task Started\n");
-  can_rx_msg_t rx_msg;
-
-  for (;;)
-  {
-    osStatus_t status = bsp_can1.receive(&rx_msg, osWaitForever);
-
-    if (status == osOK)
-    {
-    }
-  }
-}
-
-
-uint8_t         test_data;
-data_pack        tx_data_pack(0xAA);
+uint8_t   test_data;
+data_pack tx_data_pack(0xAA);
 
 extern "C" void _usb_tx_handler_task(void *argument)
 {
@@ -191,7 +157,7 @@ extern "C" void _usb_tx_handler_task(void *argument)
 }
 
 uint8_t         rx_test_data = 0;
-data_pack        rx_data_pack(0xAA);
+data_pack       rx_data_pack(0xAA);
 extern "C" void _usb_rx_handler_task(void *argument)
 {
   (void)argument;

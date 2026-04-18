@@ -16,6 +16,7 @@
  * - CDC 接收回调注册
  */
 
+
 /**
  * @class BspUsb
  * @brief USB BSP 单例类，负责 TinyUSB Device CDC 的初始化与数据收发。
@@ -118,7 +119,5 @@ private:
   void*      rx_user_ctx_ = nullptr;
   bool       require_dtr_ = false;
 };
-
-
 
 #endif

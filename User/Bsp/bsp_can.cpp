@@ -6,8 +6,8 @@
 
 
 /* ==================== 模板静态成员初始化 ==================== */
-bsp_can *bsp_can::_instances[bsp_can::MAX_INSTANCES] = {nullptr};
-size_t   bsp_can::_instance_count                    = 0;
+BspCan *BspCan::_instances[BspCan::MAX_INSTANCES] = {nullptr};
+size_t  BspCan::_instance_count                   = 0;
 
 
 /* ==================== 中断回调函数 ==================== */
@@ -23,14 +23,14 @@ extern "C"
   void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
   {
     // 通过CAN句柄查找对应的bsp_can实例
-    bsp_can *instance = bsp_can::get_instance_by_handle(hfdcan);
+    BspCan *instance = BspCan::get_instance_by_handle(hfdcan);
 
     if (instance != nullptr)
     {
       // 找到对应实例，处理接收
       if ((RxFifo0ITs & FDCAN_IT_RX_FIFO0_NEW_MESSAGE) != 0)
       {
-        can_rx_msg_t rxMsg;
+        CanRxMsg_t rxMsg;
 
         // 从FIFO0读取数据
         if (HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &rxMsg.header, rxMsg.data) == HAL_OK)
@@ -68,7 +68,7 @@ extern "C"
  *
  * @note 初始化成员变量，注册实例到静态表
  */
-bsp_can::bsp_can(FDCAN_HandleTypeDef *hfdcan, const char *name, can_mode mode)
+BspCan::BspCan(FDCAN_HandleTypeDef *hfdcan, const char *name, CanMode mode)
 
   : _hfdcan(hfdcan),
     _name(name),
@@ -87,7 +87,7 @@ bsp_can::bsp_can(FDCAN_HandleTypeDef *hfdcan, const char *name, can_mode mode)
  *
  * @note 释放所有分配的资源
  */
-bsp_can::~bsp_can()
+BspCan::~BspCan()
 {
   // 删除消息队列
   if (_rx_queue_handle != nullptr)
@@ -119,7 +119,7 @@ bsp_can::~bsp_can()
  * @note 必须在FreeRTOS内核初始化完成后调用
  *       依次创建资源、配置硬件、启动接收
  */
-bool bsp_can::init()
+bool BspCan::init()
 {
   // 1. 创建FreeRTOS资源
   if (!create_rtos_resources())
@@ -157,7 +157,7 @@ bool bsp_can::init()
 /**
  * @brief 创建FreeRTOS资源
  */
-bool bsp_can::create_rtos_resources()
+bool BspCan::create_rtos_resources()
 {
   // 创建消息队列
   snprintf(_queue_name, sizeof(_queue_name), "%sRx_Queue", _name);
@@ -170,7 +170,7 @@ bool bsp_can::create_rtos_resources()
     .mq_mem    = nullptr,
     .mq_size   = 0};
 
-  _rx_queue_handle = osMessageQueueNew(16, sizeof(can_rx_msg_t), &queue_attr);
+  _rx_queue_handle = osMessageQueueNew(16, sizeof(CanRxMsg_t), &queue_attr);
   if (_rx_queue_handle == nullptr)
   {
     return false;
@@ -201,7 +201,7 @@ bool bsp_can::create_rtos_resources()
  * @note 配置为接收所有标准ID
  *       过滤器索引0，接收所有标准帧到FIFO0
  */
-HAL_StatusTypeDef bsp_can::config_filter()
+HAL_StatusTypeDef BspCan::config_filter()
 {
   FDCAN_FilterTypeDef sFilterConfig;
 
@@ -238,22 +238,22 @@ HAL_StatusTypeDef bsp_can::config_filter()
  * @note 根据工作模式配置FDCAN
  * @note 暂不支持CANFD：使用经典CAN模式（FDCAN_CLASSIC_CAN）
  */
-HAL_StatusTypeDef bsp_can::start_hardware()
+HAL_StatusTypeDef BspCan::start_hardware()
 {
   // 配置工作模式
   // 注意：STM32H7的FDCAN支持多种模式配置
   switch (_work_mode)
   {
-    case can_mode::NORMAL:
+    case CanMode::NORMAL:
       // 正常模式：无需额外配置，使用默认设置
       break;
 
-    case can_mode::SILENT:
+    case CanMode::SILENT:
       // 静默模式：通过HAL库配置
       // 暂未实现，可通过HAL_FDCAN_SetMode()
       break;
 
-    case can_mode::LOOPBACK:
+    case CanMode::LOOPBACK:
       // 环回模式：通过HAL库配置
       // 暂未实现，可通过HAL_FDCAN_SetMode()
       break;
@@ -277,7 +277,7 @@ HAL_StatusTypeDef bsp_can::start_hardware()
  *
  * @note 开启FIFO0新消息中断
  */
-HAL_StatusTypeDef bsp_can::start_reception()
+HAL_StatusTypeDef BspCan::start_reception()
 {
   // 开启FIFO0新消息中断
   if (HAL_FDCAN_ActivateNotification(_hfdcan, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0) != HAL_OK)
@@ -298,7 +298,7 @@ HAL_StatusTypeDef bsp_can::start_reception()
 /**
  * @brief 清理资源
  */
-void bsp_can::cleanup_resources()
+void BspCan::cleanup_resources()
 {
   // 删除消息队列
   if (_rx_queue_handle != nullptr)
@@ -330,7 +330,7 @@ void bsp_can::cleanup_resources()
  * @note 内部使用互斥锁保护发送寄存器
  * @note 暂不支持CANFD：使用经典CAN帧格式
  */
-HAL_StatusTypeDef bsp_can::send(uint32_t stdId, uint8_t *pData, uint8_t len, uint32_t timeout)
+HAL_StatusTypeDef BspCan::send(uint32_t stdId, uint8_t *pData, uint8_t len, uint32_t timeout)
 {
   // 参数检查
   if (pData == nullptr || len > 8)
@@ -431,7 +431,7 @@ HAL_StatusTypeDef bsp_can::send(uint32_t stdId, uint8_t *pData, uint8_t len, uin
  *
  * @note 从消息队列中获取数据
  */
-osStatus_t bsp_can::receive(can_rx_msg_t *msg, uint32_t timeout)
+osStatus_t BspCan::receive(CanRxMsg_t *msg, uint32_t timeout)
 {
   if (msg == nullptr)
   {
@@ -451,7 +451,7 @@ osStatus_t bsp_can::receive(can_rx_msg_t *msg, uint32_t timeout)
 /**
  * @brief 获取接收队列中的消息数量
  */
-uint32_t bsp_can::get_queue_count()
+uint32_t BspCan::get_queue_count()
 {
   if (_rx_queue_handle != nullptr)
   {
@@ -464,7 +464,7 @@ uint32_t bsp_can::get_queue_count()
 /**
  * @brief 注册实例到静态注册表
  */
-bool bsp_can::register_instance()
+bool BspCan::register_instance()
 {
   // 检查是否已满
   if (_instance_count >= MAX_INSTANCES)
@@ -483,7 +483,7 @@ bool bsp_can::register_instance()
 /**
  * @brief 通过CAN句柄查找实例
  */
-bsp_can *bsp_can::get_instance_by_handle(FDCAN_HandleTypeDef *hfdcan)
+BspCan *BspCan::get_instance_by_handle(FDCAN_HandleTypeDef *hfdcan)
 {
   // 遍历注册表，查找匹配的CAN句柄
   for (size_t i = 0; i < _instance_count; i++)

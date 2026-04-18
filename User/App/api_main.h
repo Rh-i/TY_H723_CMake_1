@@ -42,7 +42,7 @@ extern "C"
    * @brief 默认任务
    * @param argument 任务参数
    */
-  void _defaultTask(void *argument);
+  void StartDefaultTask(void *argument);
 
   /**
    * @brief CAN接收后处理任务

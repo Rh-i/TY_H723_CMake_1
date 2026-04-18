@@ -94,7 +94,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
 )
 
 # Add TinyUSB include to Userlib
-target_include_directories(User_lib PUBLIC
+target_include_directories(User_lib PRIVATE
     ${TINYUSB_DIR}/src
 )
 

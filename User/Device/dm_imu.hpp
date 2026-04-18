@@ -5,7 +5,7 @@
  * @version 0.1
  * @date 2026-03-02
  *
- * @todo 后续可扩展更多IMU型号支持
+ * @todo 达妙的IMU经常漂
  *
  * @copyright Copyright (c) 2026
  *
@@ -13,7 +13,7 @@
  *          - 类的实例化及初始化需要在FreeRTOS内核启动后进行
  *
  * @note 实例化与初始化
- *       dm_imu imu_bmi088(bsp_can1, 0x58, 0x59); // 全局实例化类
+ *       DmImu imu_bmi088(bsp_can1, 0x58, 0x59); // 全局实例化类
  *       imu_bmi088.init();                        // 需要在freertos内核开启之后去init
  *
  * @note CAN接收处理
@@ -28,16 +28,16 @@
 #ifndef __DM_IMU_HPP__
 #define __DM_IMU_HPP__
 
-#include "bsp_cfg.hpp"
+#include "bsp_cfg.hpp" // IWYU pragma: keep
 
 /* USER CODE BEGIN */
 
 /* ==================== 外部声明 ==================== */
 
 // 前向声明
-class dm_imu;
+class DmImu;
 
-extern dm_imu imu_bmi088; ///< 全局IMU实例
+extern DmImu imu_bmi088; ///< 全局IMU实例
 
 /* USER CODE END */
 
@@ -110,7 +110,7 @@ struct imu_data
  *
  * @note 使用bsp_can接口封装，支持欧拉角和四元数输出
  */
-class dm_imu
+class DmImu
 {
 public:
   uint8_t _device_id; ///< 设备ID
@@ -126,12 +126,12 @@ public:
    * @param device_id 设备ID
    * @param master_id 主机ID
    */
-  dm_imu(bsp_can& can_bus, uint8_t device_id, uint8_t master_id = 0);
+  DmImu(BspCan& can_bus, uint8_t device_id, uint8_t master_id = 0);
 
   /**
    * @brief 析构函数
    */
-  ~dm_imu();
+  ~DmImu();
 
 
   /* ==================== 公共接口 ==================== */
@@ -252,7 +252,7 @@ public:
    * @brief CAN消息回调处理
    * @param rx_msg CAN接收消息
    */
-  void on_can_message(const can_rx_msg_t& rx_msg);
+  void on_can_message(const CanRxMsg_t& rx_msg);
 
 
 private:
@@ -289,7 +289,7 @@ private:
 
   /* ==================== 私有成员变量 ==================== */
 
-  bsp_can& _can_bus;  ///< CAN总线接口引用
+  BspCan&  _can_bus;  ///< CAN总线接口引用
   imu_data _imu_data; ///< IMU数据
   char     name[32];  ///< 互斥锁名字
 

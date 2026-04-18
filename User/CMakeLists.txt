@@ -15,6 +15,8 @@ target_include_directories(User_lib PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/Middleware/Service
     ${CMAKE_CURRENT_SOURCE_DIR}/App
 )
+
+# 添加stm32cubemx到User_lib库中
 target_link_libraries(User_lib PRIVATE stm32cubemx)
 
 # 包含所有的用户.c .cpp
@@ -26,5 +28,3 @@ file(GLOB_RECURSE USER_SOURCE
     ../User/*.cpp
 )
 target_sources(User_lib PRIVATE ${USER_SOURCE})
-
-

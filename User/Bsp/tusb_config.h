@@ -8,7 +8,7 @@ extern "C"
 
 #include "tusb_option.h"
 
-#define CFG_TUD_ENABLED             1
+#define CFG_TUD_ENABLED             1 
 #define CFG_TUH_ENABLED             0
 
 #define CFG_TUD_MAX_SPEED           TUSB_SPEED_FULL

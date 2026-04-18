@@ -5,15 +5,14 @@
  * @version 0.1
  * @date 2026-02-13
  *
- * @todo 这个库写的非常简陋，很多功能没测
- *       可扩展更多电机型号支持
+ * @todo 这个库写的非常简陋，很多功能没测，有机会可以测，以及写JC4310的驱动
  *
  * @copyright Copyright (c) 2026
  *
  * @details 使用bsp_can和FreeRTOS封装，适用于电赛云台
  *
  * @note 初始化示例
- *       jc2804 motor_yaw(bsp_can1, 2);    // 创建类对象
+ *       JC2804 motor_yaw(bsp_can1, 2);    // 创建类对象
  *       motor_yaw.init();                 // 初始化电机（在内核初始化之后使用）
  *       motor_yaw.on_can_message(rx_msg); // 在CAN接收回调处理任务中调用
  *
@@ -31,7 +30,7 @@
 #define __JC2804_HPP__
 
 
-#include "bsp_cfg.hpp"
+#include "bsp_cfg.hpp" // IWYU pragma: keep
 
 
 /* USER CODE BEGIN */
@@ -39,10 +38,10 @@
 /* ==================== 外部声明 ==================== */
 
 // 前向声明
-class jc2804;
+class JC2804;
 
-extern jc2804 motor_pitch; ///< Pitch轴电机实例
-extern jc2804 motor_yaw;   ///< Yaw轴电机实例
+extern JC2804 motor_pitch; ///< Pitch轴电机实例
+extern JC2804 motor_yaw;   ///< Yaw轴电机实例
 
 /* USER CODE END */
 
@@ -67,7 +66,7 @@ struct MotorData
  *
  * @note 使用bsp_can接口封装，支持多种控制模式
  */
-class jc2804
+class JC2804
 {
 public:
   /* ==================== 构造与析构 ==================== */
@@ -77,12 +76,12 @@ public:
    * @param can_interface CAN接口引用
    * @param device_id 设备ID
    */
-  jc2804(bsp_can& can_interface, uint8_t device_id);
+  JC2804(BspCan& can_interface, uint8_t device_id);
 
   /**
    * @brief 析构函数
    */
-  ~jc2804();
+  ~JC2804();
 
 
   /* ==================== 公有成员变量 ==================== */
@@ -241,7 +240,7 @@ public:
    * @brief CAN消息回调处理
    * @param rx_msg CAN接收消息
    */
-  void on_can_message(const can_rx_msg_t& rx_msg);
+  void on_can_message(const CanRxMsg_t& rx_msg);
 
 
 private:
@@ -272,7 +271,7 @@ private:
   /* ==================== 私有成员变量 ==================== */
 
   RequestType _last_request_type; ///< 上一次请求类型
-  bsp_can&    _can;               ///< CAN接口引用
+  BspCan&     _can;               ///< CAN接口引用
   MotorData   latest_data;        ///< 最新数据存储
 
 
@@ -300,7 +299,7 @@ private:
    * @param rx_msg 接收消息引用
    * @return 验证结果
    */
-  bool validate_response(uint8_t expected_cmd, const can_rx_msg_t& rx_msg);
+  bool validate_response(uint8_t expected_cmd, const CanRxMsg_t& rx_msg);
 
   /**
    * @brief 解析接收数据

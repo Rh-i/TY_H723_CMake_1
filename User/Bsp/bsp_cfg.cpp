@@ -37,20 +37,20 @@ extern "C" int _write(int fd, char *ptr, int len)
  * @param 实例名称（用于资源命名）
  * @param CAN工作模式（默认正常模式）
  */
-bsp_can bsp_can1(&hfdcan1, "CAN1");
+BspCan bsp_can1(&hfdcan1, "CAN1");
 
 
-///< UART
+///< UART 但模板实例化需要在BspUsart中实现
 
 /**
- * @brief 全局实例化，模板实例化需要在BspUsart中实现
+ * @brief 全局实例化
  * @param 第一个串口句柄
  * @param 第二个是串口接收模式
  * @param 第三个是是否启用发送逻辑
  * @note 这个 __attribute__((section(".dma_buffer"))) 是把他放到dtcm区域外，在.ld格式文件下实现的
  *
  */
-__attribute__((section(".dma_buffer"))) bsp_usart<128, 8> bsp_usart1(&huart1, receive_mode::SINGLE_BUFFER, true, 1); // 添加实例ID为6
+__attribute__((section(".dma_buffer"))) BspUart<128, 8> bsp_usart1(&huart1, ReceiveMode::SINGLE_BUFFER, true, 1); // 添加实例ID为6
 
 
 ///< USB
@@ -59,4 +59,4 @@ __attribute__((section(".dma_buffer"))) bsp_usart<128, 8> bsp_usart1(&huart1, re
  * @brief USB BSP 全局单例引用定义。
  *
  */
-BspUsb& bsp_usb = BspUsb::instance();
+BspUsb &bsp_usb = BspUsb::instance();

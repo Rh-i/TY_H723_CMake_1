@@ -7,14 +7,14 @@
 
 /* ==================== 全局对象实例化 ==================== */
 
-dm_imu imu_bmi088(bsp_can1, 0x58, 0x59);
+DmImu imu_bmi088(bsp_can1, 0x58, 0x59);
 
 /* USER CODE END */
 
 
 /* ==================== 寄存器ID定义 ==================== */
 
-typedef enum reg_id_e
+typedef enum RegId_e
 {
   REBOOT_IMU = 0,        ///< 重启IMU
   ACCEL_DATA,            ///< 加速度数据
@@ -34,7 +34,7 @@ typedef enum reg_id_e
   DATA_OUTPUT_SELECTION, ///< 数据输出选择
   SAVE_PARAM      = 254, ///< 保存参数
   RESTORE_SETTING = 255  ///< 恢复设置
-} reg_id_e;
+} RegId_e;
 
 
 /* ==================== 构造函数与析构函数 ==================== */
@@ -46,7 +46,7 @@ typedef enum reg_id_e
  * @param device_id 设备ID
  * @param master_id 主机ID
  */
-dm_imu::dm_imu(bsp_can& can_bus, uint8_t device_id, uint8_t master_id)
+DmImu::DmImu(BspCan& can_bus, uint8_t device_id, uint8_t master_id)
 
   : _device_id(device_id),
     _master_id(master_id),
@@ -62,7 +62,7 @@ dm_imu::dm_imu(bsp_can& can_bus, uint8_t device_id, uint8_t master_id)
 /**
  * @brief 析构函数
  */
-dm_imu::~dm_imu()
+DmImu::~DmImu()
 {
   /* 删除互斥锁 */
   if (_data_mutex_handle != NULL)
@@ -78,7 +78,7 @@ dm_imu::~dm_imu()
 /**
  * @brief 初始化IMU
  */
-void dm_imu::init()
+void DmImu::init()
 {
   snprintf(name, sizeof(name), "IMU_Data_Mutex");
 
@@ -98,7 +98,7 @@ void dm_imu::init()
  * @param reg_id 寄存器ID
  * @param data 写入数据
  */
-void dm_imu::write_register(uint8_t reg_id, uint32_t data)
+void DmImu::write_register(uint8_t reg_id, uint32_t data)
 {
   uint8_t buf[8] = {0xCC, reg_id, CMD_WRITE, 0xDD, 0, 0, 0, 0};
   memcpy(buf + 4, &data, 4);
@@ -111,7 +111,7 @@ void dm_imu::write_register(uint8_t reg_id, uint32_t data)
  * @brief 读寄存器
  * @param reg_id 寄存器ID
  */
-void dm_imu::read_register(uint8_t reg_id)
+void DmImu::read_register(uint8_t reg_id)
 {
   uint8_t buf[8] = {0xCC, reg_id, CMD_READ, 0xDD, 0, 0, 0, 0};
 
@@ -122,7 +122,7 @@ void dm_imu::read_register(uint8_t reg_id)
 /**
  * @brief 重启IMU
  */
-void dm_imu::reboot()
+void DmImu::reboot()
 {
   write_register(REBOOT_IMU, 0);
 }
@@ -131,7 +131,7 @@ void dm_imu::reboot()
 /**
  * @brief 加速度计校准
  */
-void dm_imu::accel_calibration()
+void DmImu::accel_calibration()
 {
   write_register(ACCEL_CALI, 0);
 }
@@ -140,7 +140,7 @@ void dm_imu::accel_calibration()
 /**
  * @brief 陀螺仪校准
  */
-void dm_imu::gyro_calibration()
+void DmImu::gyro_calibration()
 {
   write_register(GYRO_CALI, 0);
 }
@@ -150,7 +150,7 @@ void dm_imu::gyro_calibration()
  * @brief 更改通信端口
  * @param port 通信端口
  */
-void dm_imu::change_com_port(imu_com_port_e port)
+void DmImu::change_com_port(imu_com_port_e port)
 {
   write_register(CHANGE_COM, static_cast<uint8_t>(port));
 }
@@ -160,7 +160,7 @@ void dm_imu::change_com_port(imu_com_port_e port)
  * @brief 设置主动模式延时
  * @param delay 延时时间
  */
-void dm_imu::set_active_mode_delay(uint32_t delay)
+void DmImu::set_active_mode_delay(uint32_t delay)
 {
   write_register(SET_DELAY, delay);
 }
@@ -169,7 +169,7 @@ void dm_imu::set_active_mode_delay(uint32_t delay)
 /**
  * @brief 切换到主动模式
  */
-void dm_imu::change_to_active()
+void DmImu::change_to_active()
 {
   write_register(CHANGE_ACTIVE, 1);
 }
@@ -178,7 +178,7 @@ void dm_imu::change_to_active()
 /**
  * @brief 切换到请求模式
  */
-void dm_imu::change_to_request()
+void DmImu::change_to_request()
 {
   write_register(CHANGE_ACTIVE, 0);
 }
@@ -188,7 +188,7 @@ void dm_imu::change_to_request()
  * @brief 设置波特率
  * @param baud 波特率
  */
-void dm_imu::set_baud(imu_baudrate_e baud)
+void DmImu::set_baud(imu_baudrate_e baud)
 {
   write_register(SET_BAUD, static_cast<uint8_t>(baud));
 }
@@ -198,7 +198,7 @@ void dm_imu::set_baud(imu_baudrate_e baud)
  * @brief 设置CAN ID
  * @param can_id CAN ID
  */
-void dm_imu::set_can_id(uint8_t can_id)
+void DmImu::set_can_id(uint8_t can_id)
 {
   write_register(SET_CAN_ID, can_id);
 }
@@ -208,7 +208,7 @@ void dm_imu::set_can_id(uint8_t can_id)
  * @brief 设置主机ID
  * @param mst_id 主机ID
  */
-void dm_imu::set_mst_id(uint8_t mst_id)
+void DmImu::set_mst_id(uint8_t mst_id)
 {
   write_register(SET_MST_ID, mst_id);
 }
@@ -217,7 +217,7 @@ void dm_imu::set_mst_id(uint8_t mst_id)
 /**
  * @brief 保存参数
  */
-void dm_imu::save_parameters()
+void DmImu::save_parameters()
 {
   write_register(SAVE_PARAM, 0);
 }
@@ -226,7 +226,7 @@ void dm_imu::save_parameters()
 /**
  * @brief 恢复设置
  */
-void dm_imu::restore_settings()
+void DmImu::restore_settings()
 {
   write_register(RESTORE_SETTING, 0);
 }
@@ -235,7 +235,7 @@ void dm_imu::restore_settings()
 /**
  * @brief 请求欧拉角数据
  */
-void dm_imu::request_euler()
+void DmImu::request_euler()
 {
   read_register(EULER_DATA);
 }
@@ -244,7 +244,7 @@ void dm_imu::request_euler()
 /**
  * @brief 请求四元数数据
  */
-void dm_imu::request_quat()
+void DmImu::request_quat()
 {
   read_register(QUAT_DATA);
 }
@@ -254,7 +254,7 @@ void dm_imu::request_quat()
  * @brief 获取IMU数据（线程安全）
  * @return imu_data IMU数据
  */
-imu_data dm_imu::get_imu_data()
+imu_data DmImu::get_imu_data()
 {
   imu_data data_copy;
 
@@ -280,7 +280,7 @@ imu_data dm_imu::get_imu_data()
  * @brief 设置IMU数据（线程安全）
  * @param data IMU数据
  */
-void dm_imu::set_imu_data(const imu_data& data)
+void DmImu::set_imu_data(const imu_data& data)
 {
   /* 进入临界区：关闭中断并获取互斥锁 */
   uint32_t irq_state = __get_PRIMASK();
@@ -315,7 +315,7 @@ void dm_imu::set_imu_data(const imu_data& data)
  * @param bits 位数
  * @return int 转换后的无符号整数
  */
-int dm_imu::float_to_uint(float x_float, float x_min, float x_max, int bits)
+int DmImu::float_to_uint(float x_float, float x_min, float x_max, int bits)
 {
   /* Converts a float to an unsigned int, given range and number of bits */
   float span   = x_max - x_min;
@@ -333,7 +333,7 @@ int dm_imu::float_to_uint(float x_float, float x_min, float x_max, int bits)
  * @param bits 位数
  * @return float 转换后的浮点数
  */
-float dm_imu::uint_to_float(int x_int, float x_min, float x_max, int bits)
+float DmImu::uint_to_float(int x_int, float x_min, float x_max, int bits)
 {
   /* converts unsigned int to float, given range and number of bits */
   float span   = x_max - x_min;
@@ -346,7 +346,7 @@ float dm_imu::uint_to_float(int x_int, float x_min, float x_max, int bits)
  * @brief 更新欧拉角数据
  * @param pData 数据指针
  */
-void dm_imu::update_euler(const uint8_t (&data)[8])
+void DmImu::update_euler(const uint8_t (&data)[8])
 {
   int16_t euler[3];
 
@@ -381,7 +381,7 @@ void dm_imu::update_euler(const uint8_t (&data)[8])
  * @brief 更新四元数数据
  * @param pData 数据指针
  */
-void dm_imu::update_quaternion(const uint8_t (&data)[8])
+void DmImu::update_quaternion(const uint8_t (&data)[8])
 {
   int w = data[1] << 6 | ((data[2] & 0xF8) >> 2);
   int x = (data[2] & 0x03) << 12 | (data[3] << 4) | ((data[4] & 0xF0) >> 4);
@@ -416,7 +416,7 @@ void dm_imu::update_quaternion(const uint8_t (&data)[8])
  * @brief CAN消息回调处理
  * @param rx_msg CAN接收消息
  */
-void dm_imu::on_can_message(const can_rx_msg_t& rx_msg)
+void DmImu::on_can_message(const CanRxMsg_t& rx_msg)
 {
   if (rx_msg.data[0] == 0x03)
   {

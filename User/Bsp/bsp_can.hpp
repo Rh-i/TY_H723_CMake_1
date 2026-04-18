@@ -5,7 +5,7 @@
  * @version 0.2
  * @date 2026-02-11
  *
- * @todo 1. 后续可扩展CAN2/CAN3支持；2. 优化过滤器配置 3. 目前使用查表法存入回调函数中，可能查询速度会慢，希望后人处理
+ * @todo 1. 后续可扩展CAN2/CAN3支持；2. 优化过滤器配置 3. 目前使用查表法存入回调函数中，可能查询速度会慢，希望后人处理4. 接收到的数据进行处理的部分，没有被写，需要在服务层写分发处理
  *
  * @copyright Copyright (c) 2026
  *
@@ -14,7 +14,7 @@
  * @note 使用示例
  *
  *   // 全局实例化类
- *   bsp_can bsp_can1(&hfdcan1);
+ *   BspCan bsp_can1(&hfdcan1);
  *
  *   // 初始化（在freertos内核开启之后调用）
  *   bsp_can1.init();
@@ -26,7 +26,7 @@
  *   bsp_can1.send(0x602, tx_data, 8);
  *
  *   // 接收数据（阻塞式）- 用户需要在自己的任务中调用
- *   can_rx_msg_t rx_msg;
+ *   CanRxMsg_t rx_msg;
  *   bsp_can1.receive(&rx_msg, osWaitForever);
  *
  * @note 重要说明：
@@ -56,7 +56,7 @@
  *
  * @note 暂不支持CANFD模式
  */
-enum class can_mode
+enum class CanMode
 {
   NORMAL   = 0, ///< 正常模式：正常收发CAN报文
   SILENT   = 1, ///< 静默模式：只接收CAN报文，不发送，用于监听总线
@@ -73,7 +73,7 @@ typedef struct
 {
   FDCAN_RxHeaderTypeDef header;  ///< CAN帧头信息
   uint8_t               data[8]; ///< 接收数据（标准CAN最大8字节）
-} can_rx_msg_t;
+} CanRxMsg_t;
 
 
 /**
@@ -86,7 +86,7 @@ typedef struct
   uint32_t std_id;  ///< 标准CAN ID
   uint8_t  data[8]; ///< 发送数据
   uint8_t  len;     ///< 数据长度（0-8字节）
-} can_tx_msg_t;
+} CanTxMsg_t;
 
 
 /**
@@ -99,7 +99,7 @@ typedef struct
  *       - 不创建内部接收任务，由用户自行创建任务调用receive()处理
  *       - 接收处理逻辑完全由用户控制，每个CAN可独立处理
  */
-class bsp_can
+class BspCan
 {
 private:
   /* ==================== 硬件相关 ==================== */
@@ -109,12 +109,12 @@ private:
 public:
   osMessageQueueId_t      _rx_queue_handle = nullptr; ///< CMSIS_OS2消息队列（接收）
   osMutexId_t             _tx_mutex_handle = nullptr; ///< CMSIS_OS2互斥锁（发送）
-  can_mode                _work_mode;                 ///< CAN工作模式
+  CanMode                 _work_mode;                 ///< CAN工作模式
   bool                    _is_initialized = false;    ///< 初始化标志
   char                    _queue_name[32];            ///< 消息队列名字
   char                    _mutex_name[32];            ///< 互斥锁名字
   static constexpr size_t MAX_INSTANCES = 3;          ///< 最大实例数量
-  static bsp_can         *_instances[MAX_INSTANCES];  ///< 实例指针数组
+  static BspCan          *_instances[MAX_INSTANCES];  ///< 实例指针数组
   static size_t           _instance_count;            ///< 已注册实例数量
 
   /* ==================== 公共接口 ==================== */
@@ -128,14 +128,14 @@ public:
    * @param name 实例名称（用于生成资源名称），默认为"CAN"
    * @param mode CAN工作模式，默认为正常模式
    */
-  bsp_can(FDCAN_HandleTypeDef *hfdcan, const char *name = "CAN", can_mode mode = can_mode::NORMAL);
+  BspCan(FDCAN_HandleTypeDef *hfdcan, const char *name = "CAN", CanMode mode = CanMode::NORMAL);
 
   /**
    * @brief 析构函数
    *
    * @note 释放所有分配的资源
    */
-  ~bsp_can();
+  ~BspCan();
 
   /**
    * @brief 初始化函数
@@ -173,7 +173,7 @@ public:
    * @param timeout 超时时间（tick），默认永久等待
    * @return osStatus_t osOK/osErrorTimeout/osErrorResource
    */
-  osStatus_t receive(can_rx_msg_t *msg, uint32_t timeout = osWaitForever);
+  osStatus_t receive(CanRxMsg_t *msg, uint32_t timeout = osWaitForever);
 
   /**
    * @brief 获取接收队列中的消息数量
@@ -198,9 +198,9 @@ public:
    * @note 静态成员函数，用于在中断回调中通过CAN句柄找到对应的类实例
    *
    * @param hfdcan CAN句柄指针
-   * @return bsp_can* 找到的实例指针，未找到返回nullptr
+   * @return BspCan* 找到的实例指针，未找到返回nullptr
    */
-  static bsp_can *get_instance_by_handle(FDCAN_HandleTypeDef *hfdcan);
+  static BspCan *get_instance_by_handle(FDCAN_HandleTypeDef *hfdcan);
 
   /**
    * @brief 注册实例到静态注册表中
