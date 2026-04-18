@@ -42,13 +42,22 @@ extern "C"
    * @brief 默认任务
    * @param argument 任务参数
    */
-  void StartDefaultTask(void *argument);
+  void _defaultTask(void *argument);
 
   /**
    * @brief CAN接收后处理任务
    * @param argument 任务参数
    */
   void _can_rx_handler_task(void *argument);
+
+  /**
+   * @brief USB接收后处理任务
+   *
+   * @param argument 任务参数
+   */
+  void _usb_rx_handler_task(void *argument);
+
+  void _usb_tx_handler_task(void *argument);
 
 
 #ifdef __cplusplus

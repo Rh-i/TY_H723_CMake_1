@@ -1,20 +1,19 @@
 # README
 
-# todo
+## todo
 
-小项目先实现：
-- USB-HID和CDC
-
-总计实现：
+- USB-HID
 - SPI-Flash
-- 测试H7新功能 CORTEX_M7栏目内容
-- 移植dsp库
-- 写SPI/IIC的驱动
-- 多种电机驱动（DJI DM）
-- PID控制算法
-- 自用0.96寸LCD屏驱动
-- 灯 蜂鸣器 按钮 舵机 等等小驱动
-- BMI088 / ICM42688 / 国产陀螺仪驱动
+- Cortex‑M7 内核相关
+  - 分支预测
+  - MPU 内存保护单元
+  - Cache 缓存
+- DSP 库移植
+- SPI、IIC、看门狗、DWT 驱动
+- 多种电机驱动开发（DJI DM）
+- LCD 屏驱动（DM屏幕和1寸LCD）
+- 灯、蜂鸣器、按键、舵机、BMI088、ICM42688 及国产陀螺仪驱动
+- 串口协议裁判系统、遥控器、云台、功率控制、发射机构、超电、底盘控制等等
 
 ## 具体文件树
 
@@ -22,22 +21,20 @@
 root              
 │                   │.clang-format 代码格式化设置 可以按照自己风格改
 │                   │README.md     本文件
-│                   │其余为生成的文件，包括锁等等官方生成的文件
 │                   |---
-├─.vscode           |里面`launch`要修改`.elf`（调试）
-|                   |（如果文件夹名字和工程名字一致，则可以自动找到）
-│                   |`settings`根据自己电脑修改工具链位置（clangd）
-│                   |`tasks`是终端执行的任务 看自己改不改了
+├─.vscode           |`tasks`是终端执行的任务
+|                   |如果想使用烧录和调试功能，需要工程名字和文件夹名字一样才可以（elf/hex文件名字和主文件夹名字相同）
 ├─build             |---
-│  └─Debug          |这里面有一个`compile_commands.json`（clangd）以及编译出的东西
+│  └─Debug          |编译出来的临时文件
 ├─cmake             |---
-│  └─stm32cubemx    |没病不用动
+│  └─stm32cubemx    |STM32的库以及cmake链接方式
 ├─Core              |---
-│  ├─Inc            |略
-│  └─Src            |略
-├─Drivers           |---
-├─Flash             |个人写的烧录相关 修改flash的.elf内容（openocd） 有条件可以加除了dap之外的烧录器
-├─Middlewares       |官方生成库，FreeRTOS等等
+│  ├─Inc            |STM32的HAL层文件
+│  └─Src            |STM32的HAL层文件
+├─Drivers           |STM32的Driver层文件
+├─Flash             |个人写的烧录相关 工程名字和文件夹名字一样才可以烧录 写好了DAP和JLink 以及win和linux的烧录脚本 ozone
+├─Middlewares       |官方生成的中间件库，FreeRTOS，USB
+├─tinyusb-0.20.0    |TinyUSB库
 └─User              |---
     ├─Bsp           |板载支持驱动
     ├─Device        |设备层
@@ -48,40 +45,34 @@ root
     └─App           |应用层 / c cpp混编接口层
 
 ```
-> 对这几个层的理解是 板载支持包完全是按照芯片引脚等等信息来写一层封装，在BSP的基础上，一点点的封装出对应的驱动/设备Dvc，然后多个驱动/设备Dvc连接起来，这就是模块层Mod。应用层就是把mod和mid的东西都拎出来，变成具体的任务。算法Alg 服务风svc就是穿插在这里面的。
->
-> 也就是说，移植工程只需重写BSP的接口，就可以完整的用上之前的工程。那就得做到尽可能的解耦，以及树状结构，还有良好的封装。
+我认为：ST官方生成的属于BSP的一部分：
 
-## 使用说明
+freertos的硬件支持、usb的硬件支持，外设封装好的支持等等，本质上都在硬件抽象（hal）。但是板载支持包（bsp）不仅要硬件抽象，是要完全不考虑硬件，只需要简易的使用代码就可以操控整个板子的外设，不需要考虑板子上的任意情况。这是bsp要做的，也是最麻烦的。
 
-配置和编译应该是使用CMake官方的按钮，当然大部分时候是CMake会自动配置
-
-配置和编译：CMake处有固定的命令：（自行添加，官方提供了）
-- 使用cmake栏中的上半部分的内容也可以
-- 配置
-- 生成
-- 清除重新生成
-- 清楚缓存并重新配置 
-
-烧录可以使用VSCode官方的Task，使用的openocd实现。烧录时只需要执行这个任务就可以。也写了JLink的脚本，没测试，但是烧录过ti的没问题(但是当时有点小bug)
-
-调试使用vscode的运行与调试栏
-
-Cortex-Debug可以看rtos的简单运行情况，内存使用情况，查看变量等等
-
-但是后来我们应该可以换到linux下，虽然这些win也可以用：Cortex-Debug + Ozone（调试 JLink）+ Systemviewer（RTOS相关）
+其他的device等等很好理解，只需要在写好的bsp层的基础上，对要做处理的设备进行处理即可
 
 ## 如何开发
 
-1. 修改成适合自己电脑的一些配置文件，默认配置就是相应的文件和主文件夹名称一样（使用的主文件夹名称作为的索引）
+### 配置：
+1. 需要工程文件和主文件夹名称一样（烧录和调试都是使用的主文件夹名称作为的索引）
 2. 编译烧录调试都使用vscode中的内容，后期可以使用外部调试工具（但是没有keil了）
+3. 调整好各个插件，以及插件配置情况cortex debug、cmake、ninja、arm-gcc、clangd、git等等
 
-### 因为底层驱动涉及cpp的class等东西，有两种解决方案
+### 使用：
 
-1. 让main.c以cpp格式编译，所有问题不需要管，但是你只能在官方生成的代码里面的，main.cpp中进行操作，如果使用freertos同理
-2. 严格在每一个.c .cpp中写接口转接文档，每个不能调用的东西都进行接口转接。
+配置使用CMake界面 / ST的插件
 
-我这边选择的第二个（第一个的问题是每一次都得改，以及可能会有兼容性问题）
+编译使用F7 或者 CMake界面 或者 ST的
+
+烧录可以使用写好的脚本。写成了task可以直接调用（DAP JLink）
+
+调试可以直接用调试栏目。写了cortex debug的内容，也配置了ozone的内容（但是ozone这个东西每个人都不一样）
+
+Cortex-Debug可以看rtos的简单运行情况，内存使用情况，查看变量等等
+
+### 因为底层驱动涉及cpp，解决方法：
+
+严格在每一个.c .cpp中写接口转接文档，每个不能调用的东西都进行接口转接。
 
 写接口转接文档，发现在嵌入式中，只需要给`main.c`进行转接，使用`api_main`来当作提取出来的main即可。这样写的中断回调 初始化 while循环都没啥问题，FreeRTOS也是这样，只需要`extern "C"` 就可以了
 
@@ -93,15 +84,11 @@ HAL库也早就写好了cpp调用c的`extern "C"`内容
 
 `xxx为 app bsp alg`
 
-**最终迭代成使用CMAKE，工程使用C++书写，开盒即用**
+## 修改的文件
 
-# 此处记载：修改了ST生成的文件
+### CMakeList
 
-
-
-## CMakeList
-
-为了更方便的添加.c .cpp文件 在User文件夹内添加了一个子文件夹的CMakeLists.txt
+为了更方便的添加.c .cpp文件 在User文件夹内添加了一个子文件夹的CMakeLists.txt，这些可以实现一键导入User的库
 
 现在只需要在主CMakeLists.txt的最后一行添加：
 
@@ -116,7 +103,40 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
 
 target_link_options(${CMAKE_PROJECT_NAME} PRIVATE -u _printf_float)
 ##### User #####
+```
 
+关于tinyusb，在user后面添加此内容
+
+```bash
+
+### Add TinyUSB sources ###
+set(TINYUSB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tinyusb-0.20.0)
+include(${TINYUSB_DIR}/src/CMakeLists.txt)
+tinyusb_target_add(${CMAKE_PROJECT_NAME})
+
+target_sources(${CMAKE_PROJECT_NAME} PRIVATE
+    ${TINYUSB_DIR}/src/portable/synopsys/dwc2/dcd_dwc2.c
+    ${TINYUSB_DIR}/src/portable/synopsys/dwc2/dwc2_common.c
+)
+
+# Add TinyUSB include to main
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
+    ${TINYUSB_DIR}/src
+)
+
+# Add TinyUSB include to Userlib
+target_include_directories(User_lib PUBLIC
+    ${TINYUSB_DIR}/src
+)
+
+# Add project symbols (macros) <= tinyusb
+target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
+    # Add user defined symbols
+    CFG_TUSB_MCU=OPT_MCU_STM32H7
+    CFG_TUSB_OS=OPT_OS_FREERTOS
+)
+
+### Add TinyUSB sources ###
 ```
 
 以及在最后一行，添加此内容，增加了对浮点数打印的支持
@@ -125,7 +145,7 @@ target_link_options(${CMAKE_PROJECT_NAME} PRIVATE -u _printf_float)
 target_link_options(${CMAKE_PROJECT_NAME} PRIVATE -u _printf_float)
 ```
 
-## .ld文件
+### .ld文件
 
 为了DMA传输，把需要用到DMA的东西的存储，换到了DTCM之外
 
@@ -178,7 +198,7 @@ __attribute__((section(".dma_buffer"))) 使用这一个缀修饰
 ```
 
 
-## 让clangd 不报头文件未使用的错误（间接使用 clangd识别不出来）
+### 让clangd 不报头文件未使用的错误（间接使用 clangd识别不出来）
 
 使用： 在include头文件后面添加
 

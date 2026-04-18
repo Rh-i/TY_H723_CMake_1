@@ -43,7 +43,7 @@ bsp_can bsp_can1(&hfdcan1, "CAN1");
 ///< UART
 
 /**
- * @brief 全局实例化
+ * @brief 全局实例化，模板实例化需要在BspUsart中实现
  * @param 第一个串口句柄
  * @param 第二个是串口接收模式
  * @param 第三个是是否启用发送逻辑
@@ -52,3 +52,11 @@ bsp_can bsp_can1(&hfdcan1, "CAN1");
  */
 __attribute__((section(".dma_buffer"))) bsp_usart<128, 8> bsp_usart1(&huart1, receive_mode::SINGLE_BUFFER, true, 1); // 添加实例ID为6
 
+
+///< USB
+
+/**
+ * @brief USB BSP 全局单例引用定义。
+ *
+ */
+BspUsb& bsp_usb = BspUsb::instance();

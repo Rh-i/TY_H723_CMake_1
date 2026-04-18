@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.0)
+cmake_minimum_required(VERSION 3.22)
 
 #
 # This file is generated only once,
@@ -60,6 +60,7 @@ target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
 list(REMOVE_ITEM CMAKE_C_IMPLICIT_LINK_LIBRARIES ob)
 
 # Add linked libraries
+
 target_link_libraries(${CMAKE_PROJECT_NAME}
     stm32cubemx
     # Add user defined libraries
@@ -68,13 +69,46 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
 
 
 ##### User #####
+
+# Add User and User_lib
 add_subdirectory(User)
 
 target_link_libraries(${CMAKE_PROJECT_NAME}
     User_lib
-
 )
 
+
+### Add TinyUSB sources ###
+set(TINYUSB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tinyusb-0.20.0)
+include(${TINYUSB_DIR}/src/CMakeLists.txt)
+tinyusb_target_add(${CMAKE_PROJECT_NAME})
+
+target_sources(${CMAKE_PROJECT_NAME} PRIVATE
+    ${TINYUSB_DIR}/src/portable/synopsys/dwc2/dcd_dwc2.c
+    ${TINYUSB_DIR}/src/portable/synopsys/dwc2/dwc2_common.c
+)
+
+# Add TinyUSB include to main
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
+    ${TINYUSB_DIR}/src
+)
+
+# Add TinyUSB include to Userlib
+target_include_directories(User_lib PUBLIC
+    ${TINYUSB_DIR}/src
+)
+
+# Add project symbols (macros) <= tinyusb
+target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
+    # Add user defined symbols
+    CFG_TUSB_MCU=OPT_MCU_STM32H7
+    CFG_TUSB_OS=OPT_OS_FREERTOS
+)
+
+### Add TinyUSB sources ###
+
+
 target_link_options(${CMAKE_PROJECT_NAME} PRIVATE -u _printf_float)
+
 ##### User #####
 
