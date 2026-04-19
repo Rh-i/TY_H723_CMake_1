@@ -23,6 +23,7 @@ extern BspCan bsp_can1;
 
 
 ///< USART
+
 extern BspUart<128, 8> bsp_usart1;
 
 
