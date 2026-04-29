@@ -4,7 +4,7 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # 获取父目录名称作为项目名称
-PROJECT_NAME=$(basename "$SCRIPT_DIR")
+PROJECT_NAME=$(basename "$(dirname "$SCRIPT_DIR")")
 
 # 构建 ELF 文件路径 (假设构建目录结构与 Windows 一致)
 ELF_FILE="build/Debug/${PROJECT_NAME}.elf"
@@ -48,11 +48,13 @@ exit
 EOF
 
 # 执行 J-Link
-# 确保 JLink 命令在 PATH 中，或者使用完整路径 (例如 /opt/SEGGER/JLink/JLink)
-if command -v JLink &> /dev/null; then
+# Linux 下使用 JLinkExe，Windows 下使用 JLink
+if command -v JLinkExe &> /dev/null; then
+    JLinkExe -CommanderScript "$TEMP_SCRIPT"
+elif command -v JLink &> /dev/null; then
     JLink -CommanderScript "$TEMP_SCRIPT"
 else
-    echo "Error: JLink command not found. Please ensure SEGGER J-Link software is installed and in PATH."
+    echo "Error: JLinkExe/JLink command not found. Please ensure SEGGER J-Link software is installed and in PATH."
     # 清理临时文件
     rm -f "$TEMP_SCRIPT"
     exit 1

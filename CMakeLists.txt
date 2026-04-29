@@ -70,9 +70,13 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
 
 ##### User #####
 
-# Add User and User_lib
+# Add User's folders to main
 add_subdirectory(User)
 
+# Add stm32cubemx to User_lib
+target_link_libraries(User_lib PRIVATE stm32cubemx)
+
+# Add User_lib to main
 target_link_libraries(${CMAKE_PROJECT_NAME}
     User_lib
 )
@@ -83,6 +87,7 @@ set(TINYUSB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tinyusb-0.20.0)
 include(${TINYUSB_DIR}/src/CMakeLists.txt)
 tinyusb_target_add(${CMAKE_PROJECT_NAME})
 
+# Add TinyUSB source to main
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${TINYUSB_DIR}/src/portable/synopsys/dwc2/dcd_dwc2.c
     ${TINYUSB_DIR}/src/portable/synopsys/dwc2/dwc2_common.c

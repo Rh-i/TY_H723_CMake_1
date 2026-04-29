@@ -1,28 +1,31 @@
 
 
-OpenDocument="tasks.c", FilePath="/media/rh/D/Users/admin/Desktop/plan/stm32h723vgt6/DM_MC02/Middlewares/Third_Party/FreeRTOS/Source/tasks.c", Line=3742
-OpenDocument="main.c", FilePath="/media/rh/D/Users/admin/Desktop/plan/stm32h723vgt6/DM_MC02/Core/Src/main.c", Line=55
-OpenDocument="api_main.cpp", FilePath="/media/rh/D/Users/admin/Desktop/plan/stm32h723vgt6/DM_MC02/User/App/api_main.cpp", Line=98
+
+GraphedExpression="exti_count", Color=#e56a6f, Show=0
+GraphedExpression="defaultCount", DisplayFormat=DISPLAY_FORMAT_DEC, Color=#35792b
+OpenDocument="bsp_gpio_exti.cpp", FilePath="/home/rh/AAA/STM32/stm32h723vgt6/DM_MC02/User/Bsp/bsp_gpio_exti.cpp", Line=0
+OpenDocument="main.c", FilePath="/home/rh/AAA/STM32/stm32h723vgt6/DM_MC02/Core/Src/main.c", Line=63
+OpenDocument="api_main.cpp", FilePath="/home/rh/AAA/STM32/stm32h723vgt6/DM_MC02/User/App/api_main.cpp", Line=33
 OpenToolbar="Debug", Floating=0, x=0, y=0
-OpenWindow="Call Stack", DockArea=RIGHT, x=0, y=0, w=1294, h=286, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
-OpenWindow="Registers 1", DockArea=RIGHT, x=0, y=2, w=1294, h=617, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, FilteredItems=[], RefreshRate=1
-OpenWindow="Source Files", DockArea=LEFT, x=0, y=1, w=1068, h=1051, TabPos=0, TopOfStack=1, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
-OpenWindow="Break & Tracepoints", DockArea=LEFT, x=0, y=1, w=1068, h=1051, TabPos=1, TopOfStack=0, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, VectorCatchIndexMask=254
-OpenWindow="Memory 1", DockArea=BOTTOM, x=2, y=0, w=2307, h=693, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, EditorAddress=0x0
-OpenWindow="Functions", DockArea=LEFT, x=0, y=0, w=1068, h=843, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
-OpenWindow="Data Sampling", DockArea=BOTTOM, x=1, y=0, w=1416, h=693, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, VisibleTab=0, UniformSampleSpacing=0
-OpenWindow="Console", DockArea=BOTTOM, x=0, y=0, w=1385, h=693, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
-OpenWindow="FreeRTOS", DockArea=RIGHT, x=0, y=1, w=1294, h=1024, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, Showing="Task List"
+OpenWindow="Call Stack", DockArea=LEFT, x=0, y=1, w=538, h=877, TabPos=0, TopOfStack=0, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Source Files", DockArea=LEFT, x=0, y=0, w=538, h=957, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Break & Tracepoints", DockArea=LEFT, x=0, y=1, w=538, h=877, TabPos=1, TopOfStack=1, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, VectorCatchIndexMask=254
+OpenWindow="Global Data", DockArea=RIGHT, x=0, y=0, w=1037, h=895, TabPos=0, TopOfStack=1, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Local Data", DockArea=RIGHT, x=0, y=0, w=1037, h=895, TabPos=1, TopOfStack=0, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Data Sampling", DockArea=RIGHT, x=0, y=1, w=1037, h=939, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, VisibleTab=0, UniformSampleSpacing=0
+OpenWindow="Timeline", DockArea=BOTTOM, x=1, y=0, w=3541, h=743, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=1, DataPaneShown=1, PowerPaneShown=0, CodePaneShown=0, PinCursor="Cursor Movable", TimePerDiv="1 ns / Div", TimeStampFormat="Time", DataGraphDrawAsPoints=0, DataGraphLegendShown=0, DataGraphUniformSampleSpacing=0, DataGraphLegendPosition="3137;408", DataGraphShowNamesAtCursor=0, PowerGraphDrawAsPoints=0, PowerGraphLegendShown=0, PowerGraphAvgFilterTime=Off, PowerGraphAvgFilterLen=Off, PowerGraphUniformSampleSpacing=0, PowerGraphLegendPosition="3168;152", CodeGraphLegendShown=0, CodeGraphLegendPosition="3030;0"
+OpenWindow="FreeRTOS", DockArea=BOTTOM, x=0, y=0, w=1573, h=743, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, Showing="Task List"
 SmartViewPlugin="", Page="", Toolbar="Hidden", Window="SmartView 1"
-TableHeader="Vector Catches", SortCol="", SortOrder="ASCENDING", VisibleCols=["";"Vector Catch";"Description"], ColWidths=[50;300;703]
-TableHeader="Break & Tracepoints", SortCol="", SortOrder="ASCENDING", VisibleCols=["";"Type";"Location";"Extras"], ColWidths=[100;100;224;644]
-TableHeader="Functions", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Address";"Size";"#Insts";"Class";"Source"], ColWidths=[2716;185;100;100;448;524]
-TableHeader="Call Stack", SortCol="Function", SortOrder="ASCENDING", VisibleCols=["Function";"Stack Frame";"Source";"PC";"Return Address";"Stack Used"], ColWidths=[239;261;179;185;242;188]
-TableHeader="Data Sampling Table", SortCol="None", SortOrder="ASCENDING", VisibleCols=["Index";"Time"], ColWidths=[100;100]
-TableHeader="Data Sampling Setup", SortCol="Expression", SortOrder="ASCENDING", VisibleCols=["Expression";"Type";"Value";"Min";"Max";"Average";"# Changes";"Min. Change";"Max. Change"], ColWidths=[157;100;100;100;100;124;154;176;405]
+TableHeader="Call Stack", SortCol="Function", SortOrder="ASCENDING", VisibleCols=["Function";"Stack Used"], ColWidths=[948;148]
+TableHeader="Vector Catches", SortCol="Vector Catch", SortOrder="DESCENDING", VisibleCols=["";"Vector Catch";"Description"], ColWidths=[50;300;500]
+TableHeader="Break & Tracepoints", SortCol="", SortOrder="ASCENDING", VisibleCols=["";"Type";"Location";"Extras"], ColWidths=[100;100;224;114]
+TableHeader="Data Sampling Table", SortCol="None", SortOrder="ASCENDING", VisibleCols=["Index";"Time";" exti_count";" defaultCount"], ColWidths=[100;100;100;722]
+TableHeader="Data Sampling Setup", SortCol="Expression", SortOrder="ASCENDING", VisibleCols=["Expression";"Type";"Value";"Min";"Max";"Average";"# Changes";"Min. Change";"Max. Change"], ColWidths=[164;356;100;100;100;204;154;176;184]
+TableHeader="Local Data", SortCol="Value", SortOrder="DESCENDING", VisibleCols=["Name";"Value";"Size";"Type";"Access"], ColWidths=[485;174;91;287;111]
+TableHeader="Global Data", SortCol="Access", SortOrder="DESCENDING", VisibleCols=["Name";"Type";"Access";"Scope"], ColWidths=[290;526;964;101]
+TableHeader="Source Files", SortCol="File", SortOrder="ASCENDING", VisibleCols=["File";"Path"], ColWidths=[436;2159]
 TableHeader="Power Sampling", SortCol="None", SortOrder="ASCENDING", VisibleCols=["Index";"Time";"Ch 0"], ColWidths=[100;100;100]
-TableHeader="Task List", SortCol="Run Count", SortOrder="ASCENDING", VisibleCols=["Name";"Run Count";"Priority";"Status";"Timeout";"Stack Info";"ID";"Mutex Count";"Notified Value";"Notify State"], ColWidths=[276;110;110;159;110;178;110;110;110;110]
-TableHeader="Registers 1", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Value";"Description"], ColWidths=[106;261;912]
+TableHeader="Task List", SortCol="ID", SortOrder="ASCENDING", VisibleCols=["Name";"Run Count";"Priority";"Status";"Timeout";"Stack Info";"ID";"Mutex Count";"Notified Value";"Notify State"], ColWidths=[242;40;206;148;110;167;98;174;196;192]
 TableHeader="RegisterSelectionDialog", SortCol="None", SortOrder="ASCENDING", VisibleCols=[], ColWidths=[]
-TableHeader="Source Files", SortCol="Path", SortOrder="DESCENDING", VisibleCols=["File";"Status";"Size";"#Insts";"Path"], ColWidths=[411;134;109;100;2444]
 TableHeader="TargetExceptionDialog", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Value";"Address";"Description"], ColWidths=[26;26;26;40]
+WatchedExpression="exti_count", Window=Watched Data 1

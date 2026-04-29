@@ -5,7 +5,7 @@
 **********************************************************************
 
 File          : 
-Created       : 15. Apr 2026 15:39
+Created       : 21. Apr 2026 17:35
 Ozone Version : V3.40h
 */
 
@@ -22,19 +22,18 @@ void OnProjectLoad (void) {
   //
   // Dialog-generated settings
   //
-  Project.AddPathSubstitute ("/media/rh/D/Users/admin/Desktop/plan/stm32h723vgt6/DM_MC02/Flash", "$(ProjectDir)");
-  Project.AddPathSubstitute ("/media/rh/d/users/admin/desktop/plan/stm32h723vgt6/dm_mc02/flash", "$(ProjectDir)");
-  Project.SetTraceSource ("SWO");
-  Project.SetSWO (0);
+  Project.AddPathSubstitute ("/home/rh/AAA/STM32/stm32h723vgt6/DM_MC02/Flash", "$(ProjectDir)");
+  Project.AddPathSubstitute ("/home/rh/aaa/stm32/stm32h723vgt6/dm_mc02/flash", "$(ProjectDir)");
   Project.SetDevice ("STM32H723VG");
-  Project.SetHostIF ("USB", "63728769");
+  Project.SetHostIF ("USB", "602712277");
   Project.SetTargetIF ("SWD");
   Project.SetTIFSpeed ("50 MHz");
   Project.AddSvdFile ("$(InstallDir)/Config/CPU/Cortex-M7F.svd");
   //
   // User settings
   //
-  File.Open ("/media/rh/D/Users/admin/Desktop/plan/stm32h723vgt6/DM_MC02/build/Debug/DM_MC02.elf");
+  Edit.SysVar (VAR_HSS_SPEED, 1000000);
+  File.Open ("/home/rh/AAA/STM32/stm32h723vgt6/DM_MC02/build/Debug/DM_MC02.elf");
   Project.SetOSPlugin ("FreeRTOSPlugin_Cortex-M");
 }
 
