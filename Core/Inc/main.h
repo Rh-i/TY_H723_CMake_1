@@ -71,8 +71,10 @@ void Error_Handler(void);
 #define DCMI_PWDN_GPIO_Port GPIOC
 #define GYRO_ACC_INT_Pin GPIO_PIN_10
 #define GYRO_ACC_INT_GPIO_Port GPIOE
+#define GYRO_ACC_INT_EXTI_IRQn EXTI15_10_IRQn
 #define GYRO_GYRO_INT_Pin GPIO_PIN_12
 #define GYRO_GYRO_INT_GPIO_Port GPIOE
+#define GYRO_GYRO_INT_EXTI_IRQn EXTI15_10_IRQn
 #define LCD_CS_Pin GPIO_PIN_15
 #define LCD_CS_GPIO_Port GPIOE
 #define LCD_BLK_Pin GPIO_PIN_10
@@ -83,6 +85,7 @@ void Error_Handler(void);
 #define LCD_DC_GPIO_Port GPIOD
 #define KEY_Pin GPIO_PIN_15
 #define KEY_GPIO_Port GPIOA
+#define KEY_EXTI_IRQn EXTI15_10_IRQn
 
 /* USER CODE BEGIN Private defines */
 

@@ -2,7 +2,7 @@
  * @file BspUart.cpp
  * @author Rh
  * @brief 实现了一个简易的串口驱动（FreeRTOS）（只接收最新数据不能用FIFO）
- * @version 0.1
+ * @version 0.2
  * @date 2026-02-08
  *
  * @todo 1. 目前使用查表法存入回调函数中，可能查询速度会慢，希望后人处理。2. 接收到的数据进行处理的部分，没有被写，需要在服务层写分发处理
@@ -22,9 +22,9 @@
  *   __attribute__((section(".dma_buffer")))
  *   BspUart<128,8> bsp_usart6(&huart6, ReceiveMode::LATEST_ONLY, true);
  *
- *   bsp_usart6.init();                              // 需要freertos内核初始化成功之后使用
+ *   bsp_usart6.init();                           // 需要freertos内核初始化成功之后使用
  *
- * @note extern好之后，在任务中使用 发送时记得不能不阻塞发送，delay1发送就可以，不delay他不处理
+ * @note extern好之后，在任务中使用 发送时记得不能不阻塞发送，必须有Delay发送，具体看warning
  *
  *    bsp_usart6.receive(buffer,8,osWaitForever); // 这样就存到buffer中了 时间是一直等
  *    bsp_usart6.send(buffer,8);                  // 就把buffer中的数据发送出去了
@@ -50,6 +50,7 @@ enum class ReceiveMode
   SINGLE_BUFFER = 2, // 使用单个流缓冲区
   DOUBLE_BUFFER = 3  // 使用双流缓冲区机制
 };
+
 
 // 模板的第一个数字为缓冲区大小（单位uint8_t） 第二个数字为消息队列的长度（uint8_t）
 template <size_t BUFFER_SIZE = 256, size_t MSG_SIZE = 8>
@@ -106,11 +107,15 @@ public:
   ~BspUart();
 
   /**
-   * @brief 发送数据 将数据放入发送缓冲区，并启动DMA传输
+   * @brief 发送数据 将数据放入发送缓冲区，并启动DMA传输。
    *
    * @param data 要发送的数据指针
    * @param size 数据大小
-   * @param timeout 超时时间（ticks）
+   * @param timeout 超时时间（ticks / ms）
+   *
+   * @warning 延迟不能给0,这个函数只是把他扔到缓冲区里面，实际上的发送是连续的，给0没意义，会开不开互斥锁
+   *          故而不能连续调用，要给点延迟
+   *
    * @return int 返回发送的数据字节数，负值表示错误
    */
   int send(const uint8_t *data, size_t size, uint32_t timeout = osWaitForever);

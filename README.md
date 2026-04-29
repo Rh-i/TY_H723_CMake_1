@@ -1,4 +1,4 @@
-# README
+# CUBOT Code Rebuild：
 
 ## todo
 
@@ -39,18 +39,18 @@ root
     ├─Bsp           |板载支持驱动
     ├─Device        |设备层
     ├─Module        |模块层（ 多个设备组合 ）
-    ├─Middleware    |中间层
-    │  ├─Algorithm  |  算法层
-    │  └─Service    |  服务层 
+    ├─Protocol      |协议层
+    ├─Algorithm     |算法层
+    ├─Service       |服务层 
     └─App           |应用层 / c cpp混编接口层
 
 ```
-我认为：ST官方生成的属于BSP的一部分：
+我认为：ST官方生成的属于BSP的一部分 以及 Service的一部分
 
 freertos的硬件支持、usb的硬件支持，外设封装好的支持等等，本质上都在硬件抽象（hal）。但是板载支持包（bsp）不仅要硬件抽象，是要完全不考虑硬件，只需要简易的使用代码就可以操控整个板子的外设，不需要考虑板子上的任意情况。这是bsp要做的，也是最麻烦的。
 
 其他的device等等很好理解，只需要在写好的bsp层的基础上，对要做处理的设备进行处理即可
-
+![alt text](分层规划图.png)
 ## 如何开发
 
 ### 配置：
@@ -66,7 +66,7 @@ freertos的硬件支持、usb的硬件支持，外设封装好的支持等等，
 
 烧录可以使用写好的脚本。写成了task可以直接调用（DAP JLink）
 
-调试可以直接用调试栏目。写了cortex debug的内容，也配置了ozone的内容（但是ozone这个东西每个人都不一样）
+调试可以直接用调试栏目。写了cortex debug的内容，也配置了ozone的内容（但是ozone这个东西自己导入的居多）
 
 Cortex-Debug可以看rtos的简单运行情况，内存使用情况，查看变量等等
 
@@ -96,12 +96,24 @@ HAL库也早就写好了cpp调用c的`extern "C"`内容
 ##### User #####
 add_subdirectory(User)
 
+# Add stm32cubemx to User_lib
+target_link_libraries(User_lib PRIVATE stm32cubemx)
+
+# Add TinyUSB include to Userlib
+target_include_directories(User_lib PUBLIC
+    ${TINYUSB_DIR}/src
+)
+
+# Add User_lib to main
 target_link_libraries(${CMAKE_PROJECT_NAME}
     User_lib
 
 )
 
+
+# 结尾部分
 target_link_options(${CMAKE_PROJECT_NAME} PRIVATE -u _printf_float)
+
 ##### User #####
 ```
 
@@ -121,11 +133,6 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 
 # Add TinyUSB include to main
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
-    ${TINYUSB_DIR}/src
-)
-
-# Add TinyUSB include to Userlib
-target_include_directories(User_lib PUBLIC
     ${TINYUSB_DIR}/src
 )
 
@@ -153,7 +160,7 @@ target_link_options(${CMAKE_PROJECT_NAME} PRIVATE -u _printf_float)
 __attribute__((section(".dma_buffer"))) 使用这一个缀修饰
 ```
 
-修改ld文件的内容如下，中文注释之间为添加内容，下方的.data是原来带的，用于确定方位
+修改ld文件的内容如下，中文注释之间为添加内容，多余的内容是定位用的
 
 ```c
   .fini_array (READONLY) : /* The "READONLY" keyword is only supported in GCC11 and later, remove it if using GCC10 or earlier. */
@@ -166,7 +173,7 @@ __attribute__((section(".dma_buffer"))) 使用这一个缀修饰
     . = ALIGN(4);
   } >FLASH
 
- /* 用户为dma传输配置的内存地址 */
+ /* === 用户为dma传输配置的内存地址 === */
   .dma_buffer (NOLOAD) :
   {
     . = ALIGN(32);
@@ -177,7 +184,7 @@ __attribute__((section(".dma_buffer"))) 使用这一个缀修饰
     _edma_buffer = .;
   } >RAM_D1
 
-  /* 用户dma相关配置结束 */
+  /* === 用户dma相关配置结束 === */
 
   /* used by the startup to initialize data */
   _sidata = LOADADDR(.data);
