@@ -103,7 +103,7 @@ void DmImu::write_register(uint8_t reg_id, uint32_t data)
   uint8_t buf[8] = {0xCC, reg_id, CMD_WRITE, 0xDD, 0, 0, 0, 0};
   memcpy(buf + 4, &data, 4);
 
-  _can_bus.send(_device_id, buf, 8);
+  _can_bus.send(_device_id, buf);
 }
 
 
@@ -115,7 +115,7 @@ void DmImu::read_register(uint8_t reg_id)
 {
   uint8_t buf[8] = {0xCC, reg_id, CMD_READ, 0xDD, 0, 0, 0, 0};
 
-  _can_bus.send(_device_id, buf, 8);
+  _can_bus.send(_device_id, buf);
 }
 
 

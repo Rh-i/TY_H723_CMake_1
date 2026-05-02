@@ -1,7 +1,7 @@
 #include "bsp_uart.hpp"
+#include "cmsis_os2.h"
 #include "string.h"
 #include <stdio.h>
-
 
 /* ==================== 模板实例化 ==================== */
 
@@ -470,10 +470,7 @@ void BspUart<BUFFER_SIZE, MSG_SIZE>::handle_idle_interrupt(uint32_t received_len
         // 将整组数据的最后MSG_SIZE个字节作为最新数据
         uint8_t *latest_data_ptr = &_rx_dma_buffer[received_length - _msg_item_size];
 
-        // 清空消息队列中已有的消息，然后发送新消息（确保只保留最新数据）
-        uint8_t temp_data[MSG_SIZE];
-        while (osMessageQueueGet(_msg_queue_id, temp_data, 0, 0) == osOK)
-          ;
+        osMessageQueueReset(_msg_queue_id);
 
         osMessageQueuePut(_msg_queue_id, latest_data_ptr, 0, 0);
       }
@@ -483,10 +480,7 @@ void BspUart<BUFFER_SIZE, MSG_SIZE>::handle_idle_interrupt(uint32_t received_len
         uint8_t temp_latest_data[MSG_SIZE] = {0}; // 初始化为0
         memcpy(temp_latest_data, _rx_dma_buffer, received_length);
 
-        // 清空消息队列中已有的消息，然后发送新消息
-        uint8_t temp_data[MSG_SIZE];
-        while (osMessageQueueGet(_msg_queue_id, temp_data, 0, 0) == osOK)
-          ;
+        osMessageQueueReset(_msg_queue_id);
 
         osMessageQueuePut(_msg_queue_id, temp_latest_data, 0, 0);
       }

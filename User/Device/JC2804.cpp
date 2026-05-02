@@ -54,13 +54,8 @@ JC2804::~JC2804()
  */
 void JC2804::send_async_command(uint8_t cmd, const uint8_t* data, uint8_t len)
 {
-  if (len > 8)
-  {
-    return;
-  }
-
   uint32_t tx_id = 0x600 | _device_id; // 标准帧ID格式：0x600 + DeviceID
-  _can.send(tx_id, const_cast<uint8_t*>(data), len);
+  _can.send(tx_id, const_cast<uint8_t*>(data));
 }
 
 
