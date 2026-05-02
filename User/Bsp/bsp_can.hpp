@@ -14,6 +14,8 @@
  *
  * @note 先在bsp_cfg实例化它，再在freertos_init()中初始化它
  *
+ *      
+ *
  *      bsp_can1.init();
  *
  * @note 如何使用：
