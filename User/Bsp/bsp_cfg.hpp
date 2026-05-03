@@ -16,10 +16,18 @@
 #include "bsp_uart.hpp"
 #include "bsp_usb.hpp"
 
+
+/* ==================== 函数 声明 ==================== */
+
+void bsp_init();
+
+
 /* ==================== 全局 声明 ==================== */
 
-///< CAN
+///< CAN 一共三个 都初始化了
 extern BspCan bsp_can1;
+extern BspCan bsp_can2;
+extern BspCan bsp_can3;
 
 
 ///< USART

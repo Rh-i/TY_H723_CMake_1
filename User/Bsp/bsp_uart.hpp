@@ -5,7 +5,9 @@
  * @version 0.2
  * @date 2026-02-08
  *
- * @todo 1. 目前使用查表法存入回调函数中，可能查询速度会慢，希望后人处理。2. 接收到的数据进行处理的部分，没有被写，需要在服务层写分发处理
+ * @todo 1. 目前使用查表法存入回调函数中，可能查询速度会慢，希望后人处理。
+ *       2. 接收到的数据,需要在服务层写分发处理
+ *       3. 双缓冲区测试过，效果不理想
  *
  * @copyright Copyright (c) 2026
  *
@@ -15,19 +17,19 @@
  *
  * @note 模板实例化实现 以及类的实例化 第一个数字为缓冲区大小（uint8_t） 第二个数字为消息队列的长度（uint8_t）
  *
- *   // 全局实例化模板
- *   template class BspUart<128,8>;
+ *   // 全局实例化模板在bsp_uart.cpp中
+ *   template class BspUart<64,8>;
  *
- *   // 全局实例化类
+ *   // 全局实例化类 在bsp_cfg.cpp中
  *   __attribute__((section(".dma_buffer")))
- *   BspUart<128,8> bsp_usart6(&huart6, ReceiveMode::LATEST_ONLY, true);
+ *   BspUart<64,8> bsp_usart6(&huart6, ReceiveMode::SINGLE_BUFFER, true);
  *
  *   bsp_usart6.init();                           // 需要freertos内核初始化成功之后使用
  *
- * @note extern好之后，在任务中使用 发送时记得不能不阻塞发送，必须有Delay发送，具体看warning
+ * @note extern好之后，在任务中使用
  *
- *    bsp_usart6.receive(buffer,8,osWaitForever); // 这样就存到buffer中了 时间是一直等
- *    bsp_usart6.send(buffer,8);                  // 就把buffer中的数据发送出去了
+ *    bsp_usart6.receive(buffer,8,osWaitForever); // 从自动中断接收的缓冲区里面接收，无需处理直接拿
+ *    bsp_usart6.send(buffer,8);                  // 存入发送缓冲区，然后自动发送
  *
  */
 
@@ -59,7 +61,6 @@ class BspUart
 
 private:
   UART_HandleTypeDef  *_huart;                                     ///< UART句柄指针，指向底层硬件接口
-  osMutexId_t          _mutex_id             = nullptr;            ///< CMSIS-RTOS2互斥锁ID，用于线程安全访问
   osMessageQueueId_t   _msg_queue_id         = nullptr;            ///< CMSIS-RTOS2消息队列ID，用于LATEST_ONLY模式
   StreamBufferHandle_t _rx_stream_buffers[2] = {nullptr, nullptr}; ///< 接收流缓冲区数组，[0]为单缓冲或双缓冲第一个，[1]为双缓冲第二个
   StreamBufferHandle_t _tx_stream_buffer     = nullptr;            ///< FreeRTOS发送流缓冲区句柄
@@ -73,7 +74,6 @@ private:
   bool                 _transmit_enable;                           ///< 是否启用发送
   uint32_t             _last_received_length = 0;                  ///< 最后一次接收的数据长度
   int                  _instance_id;                               ///< 实例ID，用于生成唯一资源名称
-  char                 mutex_name[32];                             ///< 实例互斥锁的名字，用于调试时看到名字
   char                 msgq_name[32];                              ///< 实例消息队列的名字，用于调试时看到名字
 
   // 静态成员：实例注册表，用于通过UART句柄查找对应的bsp_usart实例
@@ -112,9 +112,6 @@ public:
    * @param data 要发送的数据指针
    * @param size 数据大小
    * @param timeout 超时时间（ticks / ms）
-   *
-   * @warning 延迟不能给0,这个函数只是把他扔到缓冲区里面，实际上的发送是连续的，给0没意义，会开不开互斥锁
-   *          故而不能连续调用，要给点延迟
    *
    * @return int 返回发送的数据字节数，负值表示错误
    */

@@ -26,14 +26,9 @@ extern "C"
   /* ==================== 初始化函数 ==================== */
 
   /**
-   * @brief 主应用程序初始化（非FreeRTOS）
+   * @brief FreeRTOS后的相关初始化
    */
-  void app_init(void);
-
-  /**
-   * @brief FreeRTOS相关初始化
-   */
-  void freertos_init(void);
+  void all_init(void);
 
 
   /* ==================== 任务函数声明 ==================== */
