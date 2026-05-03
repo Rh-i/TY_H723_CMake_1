@@ -5,17 +5,15 @@
  * @version 0.4
  * @date 2026-05-02
  *
- * @todo 1. 需要实现多个can的FIFO方式，并且修改接收中断改成类内函数
- *       2. 滤波器未处理
+ * @todo 1. 滤波器未处理    
  *
  * @copyright Copyright (c) 2026
  *
  * @details 使用示例：
  *
- * @note 先在bsp_cfg实例化它，再在freertos_init()中初始化它
+ * @note 先在bsp_cfg实例化并外部声明，再在freertos_init()中初始化它
  *
- *      
- *
+ *      bsp_can1(&hfdcan1,"CAN1"); 
  *      bsp_can1.init();
  *
  * @note 如何使用：
@@ -86,9 +84,8 @@ public:
   bool              init();
   HAL_StatusTypeDef send(uint32_t stdId, uint8_t *pData);
   osStatus_t        receive(CanRxMsg_t *msg, uint32_t timeout = osWaitForever);
-  void              trigger_tx(); // 触发一次发送（供中断回调调用）
-
-  // 公开成员（中断回调需要访问）
+  void              trigger_tx();   // 触发一次发送（供中断回调调用）
+  void              process_fifo0_isr(); // FIFO0 中断处理（供中断回调调用）
   MessageBufferHandle_t _rx_message_buffer;
   MessageBufferHandle_t _tx_message_buffer;
 

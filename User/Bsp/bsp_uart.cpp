@@ -99,22 +99,6 @@ BspUart<BUFFER_SIZE, MSG_SIZE>::BspUart(UART_HandleTypeDef *huart, ReceiveMode r
 template <size_t BUFFER_SIZE, size_t MSG_SIZE>
 bool BspUart<BUFFER_SIZE, MSG_SIZE>::init()
 {
-  // 创建互斥锁，使用实例ID作为唯一标识
-  snprintf(mutex_name, sizeof(mutex_name), "USART%d_Mutex", _instance_id);
-
-  const osMutexAttr_t mutex_attr =
-    {
-      .name      = mutex_name,
-      .attr_bits = 0,
-      .cb_mem    = nullptr,
-      .cb_size   = 0};
-
-  _mutex_id = osMutexNew(&mutex_attr);
-  if (_mutex_id == nullptr)
-  {
-    return false; // 互斥锁创建失败
-  }
-
   // 根据接收模式创建消息队列 - 只有LATEST_ONLY模式才创建
   if (_receive_mode == ReceiveMode::LATEST_ONLY)
   {
@@ -218,12 +202,6 @@ BspUart<BUFFER_SIZE, MSG_SIZE>::~BspUart()
 template <size_t BUFFER_SIZE, size_t MSG_SIZE>
 void BspUart<BUFFER_SIZE, MSG_SIZE>::cleanup_resources()
 {
-  if (_mutex_id != nullptr)
-  {
-    osMutexDelete(_mutex_id);
-    _mutex_id = nullptr;
-  }
-
   // 只有LATEST_ONLY模式才创建了消息队列，需要删除
   if (_msg_queue_id != nullptr)
   {
@@ -262,14 +240,8 @@ int BspUart<BUFFER_SIZE, MSG_SIZE>::send(const uint8_t *data, size_t size, uint3
     return -1; // 发送缓冲区未初始化
   }
 
-  osStatus_t status = osMutexAcquire(_mutex_id, timeout); // 如果给了forever会一直等待直到成功
-  if (status != osOK)
-  {
-    return -1; // 获取互斥锁失败 超时会这样
-  }
-
   // 将数据写入发送流缓冲区
-  size_t bytes_written = xStreamBufferSend(_tx_stream_buffer, data, size, pdMS_TO_TICKS(timeout));
+  size_t bytes_written = xStreamBufferSend(_tx_stream_buffer, data, size, timeout);
 
   // 如果发送缓冲区中有数据，启动发送
   if (bytes_written > 0)
@@ -277,7 +249,6 @@ int BspUart<BUFFER_SIZE, MSG_SIZE>::send(const uint8_t *data, size_t size, uint3
     start_transmission();
   }
 
-  osMutexRelease(_mutex_id);
   return bytes_written;
 }
 
@@ -291,15 +262,9 @@ int BspUart<BUFFER_SIZE, MSG_SIZE>::receive(uint8_t *buffer, size_t size, uint32
     case ReceiveMode::LATEST_ONLY:
     {
       // 在LATEST_ONLY模式下，从消息邮箱获取最新数据
-      osStatus_t status = osMutexAcquire(_mutex_id, timeout);
-      if (status != osOK)
-      {
-        return -1;
-      }
 
       // 获取最新消息
-      status = osMessageQueueGet(_msg_queue_id, buffer, nullptr, timeout);
-      osMutexRelease(_mutex_id);
+      osStatus_t status = osMessageQueueGet(_msg_queue_id, buffer, nullptr, timeout);
 
       if (status == osOK)
       {
@@ -423,7 +388,7 @@ void BspUart<BUFFER_SIZE, MSG_SIZE>::start_transmission()
   if (!is_transmitting())
   {
     // 从发送缓冲区获取数据准备发送
-    size_t bytes_to_send = xStreamBufferReceive(_tx_stream_buffer, _tx_dma_buffer, BUFFER_SIZE, 0);
+    size_t bytes_to_send = xStreamBufferReceiveFromISR(_tx_stream_buffer, _tx_dma_buffer, BUFFER_SIZE, nullptr);
     if (bytes_to_send > 0)
     {
       HAL_UART_Transmit_DMA(_huart, _tx_dma_buffer, bytes_to_send);
@@ -470,8 +435,7 @@ void BspUart<BUFFER_SIZE, MSG_SIZE>::handle_idle_interrupt(uint32_t received_len
         // 将整组数据的最后MSG_SIZE个字节作为最新数据
         uint8_t *latest_data_ptr = &_rx_dma_buffer[received_length - _msg_item_size];
 
-        osMessageQueueReset(_msg_queue_id);
-
+        // osMessageQueueReset(_msg_queue_id);
         osMessageQueuePut(_msg_queue_id, latest_data_ptr, 0, 0);
       }
       else if (received_length > 0)

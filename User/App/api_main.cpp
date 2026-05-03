@@ -5,32 +5,20 @@
 
 /* BSP */
 #include "bsp_cfg.hpp"
+#include <stdint.h>
 
 
 /**
- * @brief 主应用程序初始化（非FreeRTOS）
- *
- * @note 在main.c的main函数中调用，用于非FreeRTOS环境下的初始化
- *
- */
-void app_init()
-{
-  printf("\napp_init_ok\n");
-}
-
-
-/**
- * @brief FreeRTOS相关初始化
+ * @brief FreeRTOS后的相关初始化
  *
  * @note 在main.c的MX_FREERTOS_INIT函数中调用
  *       用于创建FreeRTOS任务和初始化外设驱动
  *
  */
-void freertos_init()
+void all_init()
 {
   /* 初始化BSP设备 */
-
-  bsp_can1.init();
+  bsp_init();
 
   /* 初始化协议层 */
 
@@ -60,6 +48,7 @@ void freertos_init()
 
 
 uint64_t defaultCount = 0;
+uint8_t data1[8]{'1','2','3','4','5','6','7','8'};
 
 /**
  * @brief 默认任务，这个原本命名为_start_default_task。但是每次开FreeRTOS这个里面，默认是这个名字
@@ -77,7 +66,8 @@ extern "C" void StartDefaultTask(void *argument)
 
   for (;;)
   {
-    defaultCount++;
+    // defaultCount++;
+    bsp_usart1.send(data1, 8,0);
     osDelay(100);
   }
 }

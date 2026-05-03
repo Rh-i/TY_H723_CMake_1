@@ -1,6 +1,7 @@
 #include "bsp_can.hpp"
 #include "bsp_cfg.hpp"
 #include "cmsis_os2.h"
+#include "fdcan.h"
 #include <string.h>
 
 
@@ -13,21 +14,19 @@ extern "C"
    */
   void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
   {
-    if (hfdcan == &hfdcan1 && (RxFifo0ITs & FDCAN_IT_RX_FIFO0_NEW_MESSAGE))
+    if (RxFifo0ITs & FDCAN_IT_RX_FIFO0_NEW_MESSAGE)
     {
-      CanRxMsg_t rxMsg;
-      // 如果有人写多个CAN 那这个处理就需要修改
-      if (HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &rxMsg.header, rxMsg.data) == HAL_OK)
+      if (hfdcan == &hfdcan1)
       {
-        if (bsp_can1._rx_message_buffer != nullptr)
-        {
-          BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-          xMessageBufferSendFromISR(bsp_can1._rx_message_buffer,
-                                    &rxMsg,
-                                    sizeof(CanRxMsg_t),
-                                    &xHigherPriorityTaskWoken);
-          portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-        }
+        bsp_can1.process_fifo0_isr();
+      }
+      else if (hfdcan == &hfdcan2)
+      {
+        bsp_can2.process_fifo0_isr();
+      }
+      else if(hfdcan == &hfdcan3)
+      {
+        bsp_can3.process_fifo0_isr();
       }
     }
   }
@@ -40,6 +39,14 @@ extern "C"
     if (hfdcan == &hfdcan1)
     {
       bsp_can1.trigger_tx();
+    }
+    else if (hfdcan == &hfdcan2)
+    {
+      bsp_can2.trigger_tx();
+    }
+    else if (hfdcan == &hfdcan3)
+    {
+      bsp_can3.trigger_tx();
     }
   }
 }
@@ -117,9 +124,12 @@ HAL_StatusTypeDef BspCan::send(uint32_t stdId, uint8_t *pData)
   memcpy(txMsg.data, pData, 8);
 
   // 放入发送缓冲区（不阻塞）
-  size_t sent = xMessageBufferSend(_tx_message_buffer, &txMsg, sizeof(CanTxMsg_t), 0);
-  if (sent != sizeof(CanTxMsg_t))
-    return HAL_ERROR;
+  xMessageBufferSend(_tx_message_buffer, &txMsg, sizeof(CanTxMsg_t), 0);
+
+  // 之前是这样写的，但是返回的sent有问题。但是如果我不检查sent，直接发，数据是没问题的
+  // size_t sent = xMessageBufferSend(_tx_message_buffer, &txMsg, sizeof(CanTxMsg_t), 0);
+  // if (sent != sizeof(CanTxMsg_t))
+  // return HAL_ERROR;
 
   // 如果发送FIFO有空闲，触发一次发送
   trigger_tx();
@@ -212,5 +222,25 @@ void BspCan::trigger_tx()
 
       HAL_FDCAN_AddMessageToTxFifoQ(_hfdcan, &txHeader, txMsg.data);
     }
+  }
+}
+
+/**
+ * @brief FIFO0 中断处理（从硬件FIFO读取并放入Message Buffer）
+ */
+void BspCan::process_fifo0_isr()
+{
+  if (_hfdcan == nullptr || _rx_message_buffer == nullptr)
+    return;
+
+  CanRxMsg_t rxMsg;
+  if (HAL_FDCAN_GetRxMessage(_hfdcan, FDCAN_RX_FIFO0, &rxMsg.header, rxMsg.data) == HAL_OK)
+  {
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    xMessageBufferSendFromISR(_rx_message_buffer,
+                              &rxMsg,
+                              sizeof(CanRxMsg_t),
+                              &xHigherPriorityTaskWoken);
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
   }
 }

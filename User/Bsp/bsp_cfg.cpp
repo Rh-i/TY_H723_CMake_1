@@ -26,6 +26,20 @@ extern "C" int _write(int fd, char *ptr, int len)
   return len;
 }
 
+/* ==================== 声明的句柄 ==================== */
+
+/**
+ * @brief bsp层整体的初始化
+ * 
+ */
+void bsp_init()
+{
+  bsp_can1.init();
+  bsp_can2.init();
+  bsp_can3.init();
+  bsp_usart1.init();
+}
+
 
 /* ==================== 全局实例化 ==================== */
 
@@ -38,6 +52,8 @@ extern "C" int _write(int fd, char *ptr, int len)
  * @param CAN工作模式（默认正常模式）
  */
 BspCan bsp_can1(&hfdcan1, "CAN1");
+BspCan bsp_can2(&hfdcan2, "CAN2");
+BspCan bsp_can3(&hfdcan3, "CAN3");
 
 
 ///< UART 但模板实例化需要在BspUsart中实现
