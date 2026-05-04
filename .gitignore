@@ -6,11 +6,7 @@ build/Debug/*
 build/*
 Debug/*
 
-# 忽略个人配置的.vscode
-.vscode/*
-.vscode/
-
-.clang-format
+# 保留个人配置的.vscode
 
 # 具体的编译中间文件 (Object files, dependency files)
 *.o

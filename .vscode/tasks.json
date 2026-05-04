@@ -1,0 +1,33 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Win_OpenOCD",
+            "type": "process",
+            "command": "Flash/OpenOCD_flash.bat",
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "Win_JLink",
+            "type": "process",
+            "command": "Flash/JLink_flash.bat",
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "Linux_OpenOCD",
+            "type": "process",
+            "command": "Flash/OpenOCD_flash.sh",
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "Linux_JLink",
+            "type": "process",
+            "command": "Flash/JLink_flash.sh",
+            "group": "build",
+            "problemMatcher": []
+        }
+    ]
+}
