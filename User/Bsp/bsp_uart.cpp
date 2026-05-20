@@ -1,5 +1,5 @@
 #include "bsp_uart.hpp"
-#include "cmsis_os2.h"
+#include "FreeRTOS.h"
 #include "string.h"
 #include <stdio.h>
 
@@ -11,7 +11,7 @@
  * @param 第二个数字为消息队列的长度（uint8_t）
  *
  */
- template class BspUart<128, 8>;
+ template class BspUart<64, 8>;
 
  
 /** 
@@ -104,17 +104,8 @@ bool BspUart<BUFFER_SIZE, MSG_SIZE>::init()
   {
     snprintf(msgq_name, sizeof(msgq_name), "USART%d_MsgQ", _instance_id);
 
-    const osMessageQueueAttr_t msgq_attr =
-      {
-        .name      = msgq_name,
-        .attr_bits = 0,
-        .cb_mem    = nullptr,
-        .cb_size   = 0,
-        .mq_mem    = nullptr,
-        .mq_size   = 0};
-
     // 对于LATEST_ONLY模式，消息队列长度为1，只保留最新数据
-    _msg_queue_id = osMessageQueueNew(1, _msg_item_size, &msgq_attr);
+    _msg_queue_id = xQueueCreate(1, _msg_item_size);
     if (_msg_queue_id == nullptr)
     {
       cleanup_resources(); // 清理已创建的资源
@@ -205,7 +196,7 @@ void BspUart<BUFFER_SIZE, MSG_SIZE>::cleanup_resources()
   // 只有LATEST_ONLY模式才创建了消息队列，需要删除
   if (_msg_queue_id != nullptr)
   {
-    osMessageQueueDelete(_msg_queue_id);
+    vQueueDelete(_msg_queue_id);
     _msg_queue_id = nullptr;
   }
 
@@ -261,12 +252,12 @@ int BspUart<BUFFER_SIZE, MSG_SIZE>::receive(uint8_t *buffer, size_t size, uint32
   {
     case ReceiveMode::LATEST_ONLY:
     {
-      // 在LATEST_ONLY模式下，从消息邮箱获取最新数据
+      // 在LATEST_ONLY模式下，从消息队列获取最新数据
 
       // 获取最新消息
-      osStatus_t status = osMessageQueueGet(_msg_queue_id, buffer, nullptr, timeout);
+      BaseType_t status = xQueueReceive(_msg_queue_id, buffer, pdMS_TO_TICKS(timeout));
 
-      if (status == osOK)
+      if (status == pdTRUE)
       {
         return (size < MSG_SIZE) ? size : MSG_SIZE; // 返回实际读取的字节数
       }
@@ -326,7 +317,7 @@ size_t BspUart<BUFFER_SIZE, MSG_SIZE>::get_rx_available_data()
       // 对于LATEST_ONLY模式，检查消息队列是否有数据
       if (_msg_queue_id != nullptr)
       {
-        uint32_t count = osMessageQueueGetCount(_msg_queue_id);
+        uint32_t count = uxQueueMessagesWaiting(_msg_queue_id);
         return count * _msg_item_size;
       }
       return 0;
@@ -435,8 +426,7 @@ void BspUart<BUFFER_SIZE, MSG_SIZE>::handle_idle_interrupt(uint32_t received_len
         // 将整组数据的最后MSG_SIZE个字节作为最新数据
         uint8_t *latest_data_ptr = &_rx_dma_buffer[received_length - _msg_item_size];
 
-        // osMessageQueueReset(_msg_queue_id);
-        osMessageQueuePut(_msg_queue_id, latest_data_ptr, 0, 0);
+        xQueueSendFromISR(_msg_queue_id, latest_data_ptr, 0);
       }
       else if (received_length > 0)
       {
@@ -444,9 +434,9 @@ void BspUart<BUFFER_SIZE, MSG_SIZE>::handle_idle_interrupt(uint32_t received_len
         uint8_t temp_latest_data[MSG_SIZE] = {0}; // 初始化为0
         memcpy(temp_latest_data, _rx_dma_buffer, received_length);
 
-        osMessageQueueReset(_msg_queue_id);
+        xQueueReset(_msg_queue_id);
 
-        osMessageQueuePut(_msg_queue_id, temp_latest_data, 0, 0);
+        xQueueSendFromISR(_msg_queue_id, temp_latest_data, 0);
       }
 
       // 重新启动DMA接收

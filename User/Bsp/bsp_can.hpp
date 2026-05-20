@@ -82,8 +82,8 @@ public:
   ~BspCan();
 
   bool              init();
-  HAL_StatusTypeDef send(uint32_t stdId, uint8_t *pData);
-  osStatus_t        receive(CanRxMsg_t *msg, uint32_t timeout = osWaitForever);
+  bool send(uint32_t stdId, uint8_t *pData);
+  bool        receive(CanRxMsg_t *msg, uint32_t timeout = osWaitForever);
   void              trigger_tx();   // 触发一次发送（供中断回调调用）
   void              process_fifo0_isr(); // FIFO0 中断处理（供中断回调调用）
   MessageBufferHandle_t _rx_message_buffer;
@@ -94,9 +94,9 @@ private:
   const char          *_name;
   CanMode              _work_mode;
 
-  HAL_StatusTypeDef config_filter();
-  HAL_StatusTypeDef start_hardware();
-  HAL_StatusTypeDef start_reception();
+  bool config_filter();
+  bool start_hardware();
+  bool start_reception();
 };
 
 #endif

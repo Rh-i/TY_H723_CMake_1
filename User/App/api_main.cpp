@@ -1,5 +1,6 @@
 #include "api_main.h"
-#include "cmsis_os2.h"
+#include "FreeRTOS.h"
+#include "task.h"
 #include "main.h" // IWYU pragma: keep
 #include "stdio.h"
 
@@ -60,14 +61,16 @@ extern "C" void StartDefaultTask(void *argument)
 {
   (void)argument; // 未使用参数
 
-  osDelay(1000);
+  vTaskDelay(pdMS_TO_TICKS(1000));
   printf("Default Task Started\n");
-  osDelay(1000);
+  vTaskDelay(pdMS_TO_TICKS(1000));
 
   for (;;)
   {
     // defaultCount++;
-    bsp_usart1.send(data1, 8,0);
-    osDelay(100);
+    bsp_can1.send(0x101,data1);
+    bsp_can2.send(0x101,data1);
+    bsp_can3.send(0x101,data1);
+    vTaskDelay(pdMS_TO_TICKS(100));
   }
 }

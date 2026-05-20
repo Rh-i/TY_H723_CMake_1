@@ -1,4 +1,6 @@
 #include "dm_imu.hpp"
+#include "FreeRTOS.h"
+#include "semphr.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -67,7 +69,7 @@ DmImu::~DmImu()
   /* 删除互斥锁 */
   if (_data_mutex_handle != NULL)
   {
-    osMutexDelete(_data_mutex_handle);
+    vSemaphoreDelete(_data_mutex_handle);
     _data_mutex_handle = NULL;
   }
 }
@@ -83,13 +85,7 @@ void DmImu::init()
   snprintf(name, sizeof(name), "IMU_Data_Mutex");
 
   /* 创建互斥锁 */
-  const osMutexAttr_t mutex_attr = {
-    .name      = name,
-    .attr_bits = 0,
-    .cb_mem    = NULL,
-    .cb_size   = 0};
-
-  _data_mutex_handle = osMutexNew(&mutex_attr);
+  _data_mutex_handle = xSemaphoreCreateMutex();
 }
 
 
@@ -260,7 +256,7 @@ imu_data DmImu::get_imu_data()
 
   if (_data_mutex_handle != NULL)
   {
-    osMutexAcquire(_data_mutex_handle, osWaitForever);
+    xSemaphoreTake(_data_mutex_handle, portMAX_DELAY);
   }
 
   /* 复制数据 */
@@ -269,7 +265,7 @@ imu_data DmImu::get_imu_data()
   /* 退出临界区：释放互斥锁 */
   if (_data_mutex_handle != NULL)
   {
-    osMutexRelease(_data_mutex_handle);
+    xSemaphoreGive(_data_mutex_handle);
   }
 
   return data_copy;
@@ -282,13 +278,9 @@ imu_data DmImu::get_imu_data()
  */
 void DmImu::set_imu_data(const imu_data& data)
 {
-  /* 进入临界区：关闭中断并获取互斥锁 */
-  uint32_t irq_state = __get_PRIMASK();
-  __disable_irq();
-
   if (_data_mutex_handle != NULL)
   {
-    osMutexAcquire(_data_mutex_handle, osWaitForever);
+    xSemaphoreTake(_data_mutex_handle, portMAX_DELAY);
   }
 
   /* 更新数据 */
@@ -297,10 +289,9 @@ void DmImu::set_imu_data(const imu_data& data)
   /* 退出临界区：释放互斥锁并恢复中断 */
   if (_data_mutex_handle != NULL)
   {
-    osMutexRelease(_data_mutex_handle);
+    xSemaphoreGive(_data_mutex_handle);
   }
 
-  __set_PRIMASK(irq_state);
 }
 
 
@@ -354,13 +345,9 @@ void DmImu::update_euler(const uint8_t (&data)[8])
   euler[1] = static_cast<int16_t>((data[5] << 8) | data[4]);
   euler[2] = static_cast<int16_t>((data[7] << 8) | data[6]);
 
-  /* 进入临界区：关闭中断并获取互斥锁 */
-  uint32_t irq_state = __get_PRIMASK();
-  __disable_irq();
-
   if (_data_mutex_handle != NULL)
   {
-    osMutexAcquire(_data_mutex_handle, osWaitForever);
+    xSemaphoreTake(_data_mutex_handle, portMAX_DELAY);
   }
 
   _imu_data.pitch = uint_to_float(euler[0], PITCH_CAN_MIN, PITCH_CAN_MAX, 16);
@@ -370,10 +357,9 @@ void DmImu::update_euler(const uint8_t (&data)[8])
   /* 退出临界区：释放互斥锁并恢复中断 */
   if (_data_mutex_handle != NULL)
   {
-    osMutexRelease(_data_mutex_handle);
+    xSemaphoreGive(_data_mutex_handle);
   }
 
-  __set_PRIMASK(irq_state);
 }
 
 
@@ -388,13 +374,9 @@ void DmImu::update_quaternion(const uint8_t (&data)[8])
   int y = (data[4] & 0x0F) << 10 | (data[5] << 2) | ((data[6] & 0xC0) >> 6);
   int z = (data[6] & 0x3F) << 8 | data[7];
 
-  /* 进入临界区：关闭中断并获取互斥锁 */
-  uint32_t irq_state = __get_PRIMASK();
-  __disable_irq();
-
   if (_data_mutex_handle != NULL)
   {
-    osMutexAcquire(_data_mutex_handle, osWaitForever);
+    xSemaphoreTake(_data_mutex_handle, portMAX_DELAY);
   }
 
   _imu_data.q[0] = uint_to_float(w, Quaternion_MIN, Quaternion_MAX, 14);
@@ -405,10 +387,9 @@ void DmImu::update_quaternion(const uint8_t (&data)[8])
   /* 退出临界区：释放互斥锁并恢复中断 */
   if (_data_mutex_handle != NULL)
   {
-    osMutexRelease(_data_mutex_handle);
+    xSemaphoreGive(_data_mutex_handle);
   }
 
-  __set_PRIMASK(irq_state);
 }
 
 

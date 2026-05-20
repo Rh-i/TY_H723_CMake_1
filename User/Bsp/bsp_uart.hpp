@@ -36,9 +36,10 @@
 #ifndef __BSP_UART_HPP__
 #define __BSP_UART_HPP__
 
-#include "cmsis_os2.h"
 #include "FreeRTOS.h" // IWYU pragma: keep
+#include "task.h"     // IWYU pragma: keep
 #include "stream_buffer.h"
+#include "queue.h"
 #include "usart.h" // IWYU pragma: keep
 
 
@@ -61,7 +62,7 @@ class BspUart
 
 private:
   UART_HandleTypeDef  *_huart;                                     ///< UART句柄指针，指向底层硬件接口
-  osMessageQueueId_t   _msg_queue_id         = nullptr;            ///< CMSIS-RTOS2消息队列ID，用于LATEST_ONLY模式
+  QueueHandle_t        _msg_queue_id         = nullptr;            ///< FreeRTOS消息队列句柄，用于LATEST_ONLY模式
   StreamBufferHandle_t _rx_stream_buffers[2] = {nullptr, nullptr}; ///< 接收流缓冲区数组，[0]为单缓冲或双缓冲第一个，[1]为双缓冲第二个
   StreamBufferHandle_t _tx_stream_buffer     = nullptr;            ///< FreeRTOS发送流缓冲区句柄
   ReceiveMode          _receive_mode;                              ///< 接收模式，指定数据接收策略
@@ -115,7 +116,7 @@ public:
    *
    * @return int 返回发送的数据字节数，负值表示错误
    */
-  int send(const uint8_t *data, size_t size, uint32_t timeout = osWaitForever);
+  int send(const uint8_t *data, size_t size, uint32_t timeout = portMAX_DELAY);
 
   /**
    * @brief 接收数据 根据接收模式从相应的缓冲区读取数据
@@ -125,7 +126,7 @@ public:
    * @param timeout 超时时间（ticks）
    * @return int 实际读取的数据字节数，-1表示超时或无数据
    */
-  int receive(uint8_t *buffer, size_t size, uint32_t timeout = osWaitForever);
+  int receive(uint8_t *buffer, size_t size, uint32_t timeout = portMAX_DELAY);
 
   /**
    * @brief 获取发送缓冲区剩余空间
