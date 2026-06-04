@@ -66,6 +66,9 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     # Add user defined libraries
 )
 
+### Add CMSIS DSP Library ###
+include(cmake/cmsis_dsp.cmake)
+target_link_libraries(${CMAKE_PROJECT_NAME} CMSIS_DSP)
 
 
 ##### User #####
@@ -75,6 +78,9 @@ add_subdirectory(User)
 
 # Add stm32cubemx to User_lib
 target_link_libraries(User_lib PRIVATE stm32cubemx)
+
+# Add CMSIS_DSP to User_lib (provides arm_math.h and DSP functions)
+target_link_libraries(User_lib PRIVATE CMSIS_DSP)
 
 # Add User_lib to main
 target_link_libraries(${CMAKE_PROJECT_NAME}
