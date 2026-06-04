@@ -1,5 +1,7 @@
 #include "protocol_uart.hpp"
 #include "bsp_cfg.hpp"
+#include "FreeRTOS.h"
+#include "task.h"
 #include "string.h"
 #include <stdio.h>
 
@@ -46,7 +48,7 @@ void _uart_protocol_task_entry(void* argument)
   for (;;)
   {
     /* 1. 寻找帧头：先同步第一个包头 */
-    if (self->uart_instance.receive(&header_buf[0], 1, osWaitForever) <= 0)
+    if (self->uart_instance.receive(&header_buf[0], 1, portMAX_DELAY) <= 0)
     {
       continue;
     }
@@ -130,7 +132,7 @@ void _uart_protocol_task_entry(void* argument)
  * @param h2 帧头2
  * @param t 帧尾
  */
-ProtocolUart::ProtocolUart(BspUart<128, 8>& uart_ptr, uint8_t name, uint8_t h1, uint8_t h2, uint8_t t)
+ProtocolUart::ProtocolUart(BspUart<64, 8>& uart_ptr, uint8_t name, uint8_t h1, uint8_t h2, uint8_t t)
 
   : uart_instance(uart_ptr),
     header1(h1),
@@ -139,9 +141,8 @@ ProtocolUart::ProtocolUart(BspUart<128, 8>& uart_ptr, uint8_t name, uint8_t h1, 
 {
   /* 初始化任务属性成员变量 */
   snprintf(task_name, sizeof(task_name), "uart_protocol_%d", name);
-  task_attributes.name       = task_name;
-  task_attributes.stack_size = 512 * 4; /* 从256*4增加到512*4 */
-  task_attributes.priority   = (osPriority_t)osPriorityNormal;
+  stack_size = 512 * 4; /* 从256*4增加到512*4 */
+  priority   = tskIDLE_PRIORITY + 1; /* 任务优先级，普通优先级 */
 }
 
 
@@ -153,7 +154,7 @@ void ProtocolUart::init()
   memset(&rx_frame, 0, sizeof(rx_frame));
 
   /* 创建串口协议处理任务，传入this指针 */
-  osThreadNew(_uart_protocol_task_entry, this, &task_attributes);
+  xTaskCreate(_uart_protocol_task_entry, task_name, stack_size / 4, this, priority, nullptr);
 }
 
 

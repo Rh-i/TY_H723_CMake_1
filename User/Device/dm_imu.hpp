@@ -29,6 +29,8 @@
 #define __DM_IMU_HPP__
 
 #include "bsp_cfg.hpp" // IWYU pragma: keep
+#include "FreeRTOS.h"
+#include "semphr.h"
 
 /* USER CODE BEGIN */
 
@@ -293,7 +295,7 @@ private:
   imu_data _imu_data; ///< IMU数据
   char     name[32];  ///< 互斥锁名字
 
-  osMutexId_t _data_mutex_handle; ///< 用于保护_imu_data的互斥锁
+  SemaphoreHandle_t _data_mutex_handle; ///< 用于保护_imu_data的互斥锁
 };
 
 

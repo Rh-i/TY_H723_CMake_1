@@ -21,7 +21,8 @@
 #define __PROTOCOL_UART_HPP__
 
 
-#include "cmsis_os2.h"
+#include "FreeRTOS.h" // IWYU pragma: keep
+#include "task.h"     // IWYU pragma: keep
 #include "stddef.h"
 #include "stdint.h"
 
@@ -70,12 +71,13 @@ private:
   /* ==================== 私有成员变量 ==================== */
 
   protocol_frame_t rx_frame;        ///< 接收用结构体
-  BspUart<128, 8>& uart_instance;   ///< 使用的串口驱动实例
+  BspUart<64, 8>&  uart_instance;   ///< 使用的串口驱动实例
   uint8_t          header1;         ///< 自定义帧头1
   uint8_t          header2;         ///< 自定义帧头2
   uint8_t          tail;            ///< 自定义帧尾
   char             task_name[32];   ///< 任务名称
-  osThreadAttr_t   task_attributes; ///< 任务属性成员变量
+  uint32_t         stack_size;      ///< 堆栈大小
+  uint32_t         priority;        ///< 任务优先级
 
   /* ==================== 友元声明 ==================== */
 
@@ -109,7 +111,7 @@ public:
    * @param h2 帧头2（默认0x55）
    * @param t 帧尾（默认0x0D）
    */
-  ProtocolUart(BspUart<128, 8>& uart_ptr, uint8_t name, uint8_t h1 = 0xAA, uint8_t h2 = 0x55, uint8_t t = 0x0C);
+  ProtocolUart(BspUart<64, 8>& uart_ptr, uint8_t name, uint8_t h1 = 0xAA, uint8_t h2 = 0x55, uint8_t t = 0x0C);
 
 
   /* ==================== 公共接口 ==================== */

@@ -1,0 +1,42 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "cwd": "${workspaceRoot}",
+      "type": "cortex-debug",
+      "request": "launch",
+      "name": "cmsis-dap-debug",
+      "servertype": "openocd",
+      // 这个是根据主文件名 作为名字 ${workspaceFolderBasename}
+      "executable": "build/Debug/${workspaceFolderBasename}.elf",
+      "runToEntryPoint": "main",
+      "configFiles": [
+        "interface/cmsis-dap.cfg",
+        "target/stm32h7x.cfg"
+      ],
+      "liveWatch": {
+        "enabled": true,
+        "samplesPerSecond": 20
+      }
+    },
+    // JLink 还没测
+    {
+      "cwd": "${workspaceRoot}",
+      "type": "cortex-debug",
+      "request": "launch",
+      "name": "jlink-debug",
+      "servertype": "jlink",
+      "interface": "swd", // 改成jtag也可以
+      
+      // 这个是根据主文件名 作为名字 ${workspaceFolderBasename}
+      "executable": "build/Debug/${workspaceFolderBasename}.elf",
+      "runToEntryPoint": "main",
+      "device": "STM32H723VG",
+      "svdFile": "Flash/STM32H723.svd",
+      "liveWatch": {
+          "enabled": true,
+          "samplesPerSecond": 20,
+      }
+    }
+  ]
+}
