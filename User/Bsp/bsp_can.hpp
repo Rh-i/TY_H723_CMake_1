@@ -5,7 +5,7 @@
  * @version 0.4
  * @date 2026-05-02
  *
- * @todo 1. 滤波器未处理    
+ * @todo 1. 滤波器未处理
  *
  * @copyright Copyright (c) 2026
  *
@@ -13,7 +13,7 @@
  *
  * @note 先在bsp_cfg实例化并外部声明，再在freertos_init()中初始化它
  *
- *      bsp_can1(&hfdcan1,"CAN1"); 
+ *      bsp_can1(&hfdcan1,"CAN1");
  *      bsp_can1.init();
  *
  * @note 如何使用：
@@ -34,7 +34,6 @@
 #include "FreeRTOS.h" // IWYU pragma: keep
 #include "message_buffer.h"
 #include "task.h"
-
 
 
 /**
@@ -81,11 +80,13 @@ public:
   BspCan(FDCAN_HandleTypeDef *hfdcan, const char *name = "CAN", CanMode mode = CanMode::NORMAL);
   ~BspCan();
 
-  bool              init();
+  bool init();
   bool send(uint32_t stdId, uint8_t *pData);
-  bool        receive(CanRxMsg_t *msg, uint32_t timeout = osWaitForever);
-  void              trigger_tx();   // 触发一次发送（供中断回调调用）
-  void              process_fifo0_isr(); // FIFO0 中断处理（供中断回调调用）
+  bool receive(CanRxMsg_t *msg, uint32_t timeout = osWaitForever);
+  void trigger_tx();                                               // 触发一次发送（任务上下文调用）
+  void trigger_tx_from_isr(BaseType_t *pxHigherPriorityTaskWoken); // 触发一次发送（ISR上下文调用）
+  void process_fifo0_isr();                                        // FIFO0 中断处理（供中断回调调用）
+
   MessageBufferHandle_t _rx_message_buffer;
   MessageBufferHandle_t _tx_message_buffer;
 

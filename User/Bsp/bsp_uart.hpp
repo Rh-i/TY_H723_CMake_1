@@ -157,23 +157,27 @@ public:
   void dma_error_callback(UART_HandleTypeDef *huart);
 
   /**
-   * @brief IDLE中断处理函数 处理由IDLE中断检测到的数据包
+   * @brief IDLE中断处理函数（ISR上下文）
    *
    * @param received_length 接收到的数据长度
+   * @param pxHigherPriorityTaskWoken 需初始化为pdFALSE，若唤醒高优先级任务则置为pdTRUE
    */
-  void handle_idle_interrupt(uint32_t received_length);
+  void handle_idle_interrupt_from_isr(uint32_t received_length, BaseType_t *pxHigherPriorityTaskWoken);
 
   /**
-   * @brief 内部IDLE中断处理函数 内部处理IDLE中断，自动计算接收到的数据长度
+   * @brief 内部IDLE中断处理函数（ISR上下文）
    *
    * @param huart UART句柄
+   * @param Size 接收到的数据长度
+   * @param pxHigherPriorityTaskWoken 需初始化为pdFALSE，若唤醒高优先级任务则置为pdTRUE
    */
-  void handle_idle_interrupt_internal(UART_HandleTypeDef *huart, uint16_t Size);
+  void handle_idle_interrupt_internal(UART_HandleTypeDef *huart, uint16_t Size, BaseType_t *pxHigherPriorityTaskWoken);
 
   /**
-   * @brief TX发送完成处理函数 由TX Complete中断调用，用于继续发送剩余数据
+   * @brief TX发送完成处理函数（ISR上下文）
+   * @param pxHigherPriorityTaskWoken 需初始化为pdFALSE，若唤醒高优先级任务则置为pdTRUE
    */
-  void handle_tx_complete();
+  void handle_tx_complete_from_isr(BaseType_t *pxHigherPriorityTaskWoken);
 
   /**
    * @brief 通过UART句柄查找对应的bsp_usart实例
@@ -205,8 +209,11 @@ private:
   // 停止接收数据 停止DMA接收
   void stop_reception();
 
-  // 开始传输数据 启动DMA发送
+  // 开始传输数据 启动DMA发送（任务上下文）
   void start_transmission();
+
+  // 开始传输数据 启动DMA发送（ISR上下文）
+  void start_transmission_from_isr(BaseType_t *pxHigherPriorityTaskWoken);
 
   /**
    * @brief 检查是否正在传输

@@ -35,18 +35,22 @@ extern "C"
    */
   void HAL_FDCAN_TxBufferCompleteCallback(FDCAN_HandleTypeDef *hfdcan, uint32_t BufferIndexes)
   {
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
     if (hfdcan == &hfdcan1)
     {
-      bsp_can1.trigger_tx();
+      bsp_can1.trigger_tx_from_isr(&xHigherPriorityTaskWoken);
     }
     else if (hfdcan == &hfdcan2)
     {
-      bsp_can2.trigger_tx();
+      bsp_can2.trigger_tx_from_isr(&xHigherPriorityTaskWoken);
     }
     else if (hfdcan == &hfdcan3)
     {
-      bsp_can3.trigger_tx();
+      bsp_can3.trigger_tx_from_isr(&xHigherPriorityTaskWoken);
     }
+
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
   }
 }
 
@@ -193,19 +197,48 @@ bool BspCan::start_reception()
 }
 
 /**
- * @brief 触发一次发送（从发送缓冲区取数据发送）
+ * @brief 触发一次发送（任务上下文调用）
  */
 void BspCan::trigger_tx()
 {
   if (_tx_message_buffer == nullptr)
     return;
 
-  // 如果发送FIFO空闲
   if (HAL_FDCAN_GetTxFifoFreeLevel(_hfdcan) > 0)
   {
     CanTxMsg_t txMsg;
-    // 非阻塞从发送缓冲区取数据
     size_t len = xMessageBufferReceive(_tx_message_buffer, &txMsg, sizeof(CanTxMsg_t), 0);
+    if (len > 0)
+    {
+      FDCAN_TxHeaderTypeDef txHeader;
+      txHeader.Identifier          = txMsg.std_id;
+      txHeader.IdType              = FDCAN_STANDARD_ID;
+      txHeader.TxFrameType         = FDCAN_DATA_FRAME;
+      txHeader.DataLength          = FDCAN_DLC_BYTES_8;
+      txHeader.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
+      txHeader.BitRateSwitch       = FDCAN_BRS_OFF;
+      txHeader.FDFormat            = FDCAN_CLASSIC_CAN;
+      txHeader.TxEventFifoControl  = FDCAN_NO_TX_EVENTS;
+      txHeader.MessageMarker       = 0;
+
+      HAL_FDCAN_AddMessageToTxFifoQ(_hfdcan, &txHeader, txMsg.data);
+    }
+  }
+}
+
+/**
+ * @brief 触发一次发送（ISR上下文调用）
+ * @param pxHigherPriorityTaskWoken 需初始化为pdFALSE，若唤醒高优先级任务则置为pdTRUE
+ */
+void BspCan::trigger_tx_from_isr(BaseType_t *pxHigherPriorityTaskWoken)
+{
+  if (_tx_message_buffer == nullptr)
+    return;
+
+  if (HAL_FDCAN_GetTxFifoFreeLevel(_hfdcan) > 0)
+  {
+    CanTxMsg_t txMsg;
+    size_t len = xMessageBufferReceiveFromISR(_tx_message_buffer, &txMsg, sizeof(CanTxMsg_t), pxHigherPriorityTaskWoken);
     if (len > 0)
     {
       FDCAN_TxHeaderTypeDef txHeader;

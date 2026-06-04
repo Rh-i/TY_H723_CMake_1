@@ -37,13 +37,17 @@ extern "C"
    */
   void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
   {
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
     // 通过UART句柄指针查找对应的bsp_usart实例并处理
     BspUart<128, 8> *instance = BspUart<128, 8>::get_instance_by_handle(huart);
     if (instance != nullptr)
     {
       // 找到对应实例，调用内部处理函数
-      instance->handle_idle_interrupt_internal(huart, Size);
+      instance->handle_idle_interrupt_internal(huart, Size, &xHigherPriorityTaskWoken);
     }
+
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
   }
 
   /**
@@ -52,11 +56,15 @@ extern "C"
    */
   void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
   {
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
     BspUart<128, 8> *instance = BspUart<128, 8>::get_instance_by_handle(huart);
     if (instance != nullptr)
     {
-      instance->handle_tx_complete();
+      instance->handle_tx_complete_from_isr(&xHigherPriorityTaskWoken);
     }
+
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
   }
 }
 
@@ -367,7 +375,7 @@ void BspUart<BUFFER_SIZE, MSG_SIZE>::stop_reception()
   HAL_UART_DMAStop(_huart);
 }
 
-// 开始传输数据实现
+// 开始传输数据实现（任务上下文）
 template <size_t BUFFER_SIZE, size_t MSG_SIZE>
 void BspUart<BUFFER_SIZE, MSG_SIZE>::start_transmission()
 {
@@ -378,8 +386,28 @@ void BspUart<BUFFER_SIZE, MSG_SIZE>::start_transmission()
 
   if (!is_transmitting())
   {
-    // 从发送缓冲区获取数据准备发送
-    size_t bytes_to_send = xStreamBufferReceiveFromISR(_tx_stream_buffer, _tx_dma_buffer, BUFFER_SIZE, nullptr);
+    // 从发送缓冲区获取数据准备发送（任务级API）
+    size_t bytes_to_send = xStreamBufferReceive(_tx_stream_buffer, _tx_dma_buffer, BUFFER_SIZE, 0);
+    if (bytes_to_send > 0)
+    {
+      HAL_UART_Transmit_DMA(_huart, _tx_dma_buffer, bytes_to_send);
+    }
+  }
+}
+
+// 开始传输数据实现（ISR上下文）
+template <size_t BUFFER_SIZE, size_t MSG_SIZE>
+void BspUart<BUFFER_SIZE, MSG_SIZE>::start_transmission_from_isr(BaseType_t *pxHigherPriorityTaskWoken)
+{
+  if (_tx_stream_buffer == nullptr)
+  {
+    return; // 发送缓冲区未初始化
+  }
+
+  if (!is_transmitting())
+  {
+    // 从发送缓冲区获取数据准备发送（ISR级API）
+    size_t bytes_to_send = xStreamBufferReceiveFromISR(_tx_stream_buffer, _tx_dma_buffer, BUFFER_SIZE, pxHigherPriorityTaskWoken);
     if (bytes_to_send > 0)
     {
       HAL_UART_Transmit_DMA(_huart, _tx_dma_buffer, bytes_to_send);
@@ -396,7 +424,7 @@ bool BspUart<BUFFER_SIZE, MSG_SIZE>::is_transmitting()
 
 // 发送完成处理函数 (由 TX Complete 中断调用)
 template <size_t BUFFER_SIZE, size_t MSG_SIZE>
-void BspUart<BUFFER_SIZE, MSG_SIZE>::handle_tx_complete()
+void BspUart<BUFFER_SIZE, MSG_SIZE>::handle_tx_complete_from_isr(BaseType_t *pxHigherPriorityTaskWoken)
 {
   if (_tx_stream_buffer == nullptr || !_transmit_enable)
   {
@@ -406,13 +434,13 @@ void BspUart<BUFFER_SIZE, MSG_SIZE>::handle_tx_complete()
   // 检查发送缓冲区是否还有数据，如果有则继续发送
   if (xStreamBufferBytesAvailable(_tx_stream_buffer) > 0)
   {
-    start_transmission();
+    start_transmission_from_isr(pxHigherPriorityTaskWoken);
   }
 }
 
-// IDLE中断处理函数
+// IDLE中断处理函数（ISR上下文）
 template <size_t BUFFER_SIZE, size_t MSG_SIZE>
-void BspUart<BUFFER_SIZE, MSG_SIZE>::handle_idle_interrupt(uint32_t received_length)
+void BspUart<BUFFER_SIZE, MSG_SIZE>::handle_idle_interrupt_from_isr(uint32_t received_length, BaseType_t *pxHigherPriorityTaskWoken)
 {
   _last_received_length = received_length;
 
@@ -426,7 +454,7 @@ void BspUart<BUFFER_SIZE, MSG_SIZE>::handle_idle_interrupt(uint32_t received_len
         // 将整组数据的最后MSG_SIZE个字节作为最新数据
         uint8_t *latest_data_ptr = &_rx_dma_buffer[received_length - _msg_item_size];
 
-        xQueueSendFromISR(_msg_queue_id, latest_data_ptr, 0);
+        xQueueSendFromISR(_msg_queue_id, latest_data_ptr, pxHigherPriorityTaskWoken);
       }
       else if (received_length > 0)
       {
@@ -436,7 +464,7 @@ void BspUart<BUFFER_SIZE, MSG_SIZE>::handle_idle_interrupt(uint32_t received_len
 
         xQueueReset(_msg_queue_id);
 
-        xQueueSendFromISR(_msg_queue_id, temp_latest_data, 0);
+        xQueueSendFromISR(_msg_queue_id, temp_latest_data, pxHigherPriorityTaskWoken);
       }
 
       // 重新启动DMA接收
@@ -469,7 +497,7 @@ void BspUart<BUFFER_SIZE, MSG_SIZE>::handle_idle_interrupt(uint32_t received_len
       // 2. 将数据发送到流缓冲区
       if (target_buffer != nullptr && received_length > 0)
       {
-        xStreamBufferSendFromISR(target_buffer, _rx_dma_buffer, received_length, nullptr);
+        xStreamBufferSendFromISR(target_buffer, _rx_dma_buffer, received_length, pxHigherPriorityTaskWoken);
       }
 
       // 3. 切换到下一个缓冲区（双缓冲模式）
@@ -490,9 +518,9 @@ void BspUart<BUFFER_SIZE, MSG_SIZE>::handle_idle_interrupt(uint32_t received_len
   }
 }
 
-// IDLE中断处理函数 (简化版)
+// IDLE中断处理函数 (简化版)（ISR上下文）
 template <size_t BUFFER_SIZE, size_t MSG_SIZE>
-void BspUart<BUFFER_SIZE, MSG_SIZE>::handle_idle_interrupt_internal(UART_HandleTypeDef *huart, uint16_t Size)
+void BspUart<BUFFER_SIZE, MSG_SIZE>::handle_idle_interrupt_internal(UART_HandleTypeDef *huart, uint16_t Size, BaseType_t *pxHigherPriorityTaskWoken)
 {
   // 获取DMA剩余计数值，计算已接收的数据长度
   uint32_t dma_counter     = __HAL_DMA_GET_COUNTER(huart->hdmarx);
@@ -503,7 +531,7 @@ void BspUart<BUFFER_SIZE, MSG_SIZE>::handle_idle_interrupt_internal(UART_HandleT
   if (Size > 0)
   {
     // 正常接收完成，处理数据
-    handle_idle_interrupt(Size);
+    handle_idle_interrupt_from_isr(Size, pxHigherPriorityTaskWoken);
   }
   else if (received_length == 0 && dma_counter == BUFFER_SIZE)
   {
