@@ -123,13 +123,18 @@ bool BspCan::send(uint32_t stdId, uint8_t *pData)
   memcpy(txMsg.data, pData, 8);
 
   // 放入发送缓冲区（不阻塞）
-  xMessageBufferSend(_tx_message_buffer, &txMsg, sizeof(CanTxMsg_t), 0);
+  size_t sent = xMessageBufferSend(_tx_message_buffer, &txMsg, sizeof(CanTxMsg_t), 0);
+  if (sent != sizeof(CanTxMsg_t))
+  {
+    trigger_tx();
+    sent = xMessageBufferSend(_tx_message_buffer, &txMsg, sizeof(CanTxMsg_t), 0);
+    if (sent != sizeof(CanTxMsg_t))
+    {
+      return false;
+    }
+  }
 
   // 之前是这样写的，但是返回的sent有问题。但是如果我不检查sent，直接发，数据是没问题的
-  // size_t sent = xMessageBufferSend(_tx_message_buffer, &txMsg, sizeof(CanTxMsg_t), 0);
-  // if (sent != sizeof(CanTxMsg_t))
-  // return false;
-
   // 如果发送FIFO有空闲，触发一次发送
   trigger_tx();
 
