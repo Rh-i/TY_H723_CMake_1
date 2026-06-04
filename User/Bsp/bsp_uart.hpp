@@ -208,6 +208,10 @@ private:
   // 开始传输数据 启动DMA发送
   void start_transmission();
 
+  void start_transmission_from_isr(BaseType_t *pxHigherPriorityTaskWoken);
+
+  static TickType_t timeout_to_ticks(uint32_t timeout);
+
   /**
    * @brief 检查是否正在传输
    *

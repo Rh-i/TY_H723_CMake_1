@@ -219,6 +219,12 @@ void BspUart<BUFFER_SIZE, MSG_SIZE>::cleanup_resources()
 
 // 发送数据实现
 template <size_t BUFFER_SIZE, size_t MSG_SIZE>
+TickType_t BspUart<BUFFER_SIZE, MSG_SIZE>::timeout_to_ticks(uint32_t timeout)
+{
+  return (timeout == 0xFFFFFFFFU) ? portMAX_DELAY : pdMS_TO_TICKS(timeout);
+}
+
+template <size_t BUFFER_SIZE, size_t MSG_SIZE>
 int BspUart<BUFFER_SIZE, MSG_SIZE>::send(const uint8_t *data, size_t size, uint32_t timeout)
 {
   if (!_transmit_enable)
@@ -232,7 +238,7 @@ int BspUart<BUFFER_SIZE, MSG_SIZE>::send(const uint8_t *data, size_t size, uint3
   }
 
   // 将数据写入发送流缓冲区
-  size_t bytes_written = xStreamBufferSend(_tx_stream_buffer, data, size, timeout);
+  size_t bytes_written = xStreamBufferSend(_tx_stream_buffer, data, size, timeout_to_ticks(timeout));
 
   // 如果发送缓冲区中有数据，启动发送
   if (bytes_written > 0)
@@ -255,7 +261,7 @@ int BspUart<BUFFER_SIZE, MSG_SIZE>::receive(uint8_t *buffer, size_t size, uint32
       // 在LATEST_ONLY模式下，从消息队列获取最新数据
 
       // 获取最新消息
-      BaseType_t status = xQueueReceive(_msg_queue_id, buffer, pdMS_TO_TICKS(timeout));
+      BaseType_t status = xQueueReceive(_msg_queue_id, buffer, timeout_to_ticks(timeout));
 
       if (status == pdTRUE)
       {
@@ -272,7 +278,7 @@ int BspUart<BUFFER_SIZE, MSG_SIZE>::receive(uint8_t *buffer, size_t size, uint32
       // 单缓冲处理
       if (_rx_stream_buffers[0] != nullptr)
       {
-        size_t bytes_read = xStreamBufferReceive(_rx_stream_buffers[0], buffer, size, pdMS_TO_TICKS(timeout));
+        size_t bytes_read = xStreamBufferReceive(_rx_stream_buffers[0], buffer, size, timeout_to_ticks(timeout));
         return bytes_read;
       }
       return -1;
@@ -284,7 +290,7 @@ int BspUart<BUFFER_SIZE, MSG_SIZE>::receive(uint8_t *buffer, size_t size, uint32
       StreamBufferHandle_t target_buffer = _current_buffer ? _rx_stream_buffers[1] : _rx_stream_buffers[0];
       if (target_buffer != nullptr)
       {
-        size_t bytes_read = xStreamBufferReceive(target_buffer, buffer, size, pdMS_TO_TICKS(timeout));
+        size_t bytes_read = xStreamBufferReceive(target_buffer, buffer, size, timeout_to_ticks(timeout));
         return bytes_read;
       }
       return -1;
@@ -379,7 +385,7 @@ void BspUart<BUFFER_SIZE, MSG_SIZE>::start_transmission()
   if (!is_transmitting())
   {
     // 从发送缓冲区获取数据准备发送
-    size_t bytes_to_send = xStreamBufferReceiveFromISR(_tx_stream_buffer, _tx_dma_buffer, BUFFER_SIZE, nullptr);
+    size_t bytes_to_send = xStreamBufferReceive(_tx_stream_buffer, _tx_dma_buffer, BUFFER_SIZE, 0);
     if (bytes_to_send > 0)
     {
       HAL_UART_Transmit_DMA(_huart, _tx_dma_buffer, bytes_to_send);
@@ -388,6 +394,27 @@ void BspUart<BUFFER_SIZE, MSG_SIZE>::start_transmission()
 }
 
 // 检查是否正在传输实现
+template <size_t BUFFER_SIZE, size_t MSG_SIZE>
+void BspUart<BUFFER_SIZE, MSG_SIZE>::start_transmission_from_isr(BaseType_t *pxHigherPriorityTaskWoken)
+{
+  if (_tx_stream_buffer == nullptr)
+  {
+    return;
+  }
+
+  if (!is_transmitting())
+  {
+    size_t bytes_to_send = xStreamBufferReceiveFromISR(_tx_stream_buffer,
+                                                       _tx_dma_buffer,
+                                                       BUFFER_SIZE,
+                                                       pxHigherPriorityTaskWoken);
+    if (bytes_to_send > 0)
+    {
+      HAL_UART_Transmit_DMA(_huart, _tx_dma_buffer, bytes_to_send);
+    }
+  }
+}
+
 template <size_t BUFFER_SIZE, size_t MSG_SIZE>
 bool BspUart<BUFFER_SIZE, MSG_SIZE>::is_transmitting()
 {
@@ -404,10 +431,9 @@ void BspUart<BUFFER_SIZE, MSG_SIZE>::handle_tx_complete()
   }
 
   // 检查发送缓冲区是否还有数据，如果有则继续发送
-  if (xStreamBufferBytesAvailable(_tx_stream_buffer) > 0)
-  {
-    start_transmission();
-  }
+  BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+  start_transmission_from_isr(&xHigherPriorityTaskWoken);
+  portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
 
 // IDLE中断处理函数
@@ -426,7 +452,9 @@ void BspUart<BUFFER_SIZE, MSG_SIZE>::handle_idle_interrupt(uint32_t received_len
         // 将整组数据的最后MSG_SIZE个字节作为最新数据
         uint8_t *latest_data_ptr = &_rx_dma_buffer[received_length - _msg_item_size];
 
-        xQueueSendFromISR(_msg_queue_id, latest_data_ptr, 0);
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+        xQueueOverwriteFromISR(_msg_queue_id, latest_data_ptr, &xHigherPriorityTaskWoken);
+        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
       }
       else if (received_length > 0)
       {
@@ -434,9 +462,9 @@ void BspUart<BUFFER_SIZE, MSG_SIZE>::handle_idle_interrupt(uint32_t received_len
         uint8_t temp_latest_data[MSG_SIZE] = {0}; // 初始化为0
         memcpy(temp_latest_data, _rx_dma_buffer, received_length);
 
-        xQueueReset(_msg_queue_id);
-
-        xQueueSendFromISR(_msg_queue_id, temp_latest_data, 0);
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+        xQueueOverwriteFromISR(_msg_queue_id, temp_latest_data, &xHigherPriorityTaskWoken);
+        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
       }
 
       // 重新启动DMA接收
@@ -469,7 +497,9 @@ void BspUart<BUFFER_SIZE, MSG_SIZE>::handle_idle_interrupt(uint32_t received_len
       // 2. 将数据发送到流缓冲区
       if (target_buffer != nullptr && received_length > 0)
       {
-        xStreamBufferSendFromISR(target_buffer, _rx_dma_buffer, received_length, nullptr);
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+        xStreamBufferSendFromISR(target_buffer, _rx_dma_buffer, received_length, &xHigherPriorityTaskWoken);
+        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
       }
 
       // 3. 切换到下一个缓冲区（双缓冲模式）
