@@ -1,7 +1,7 @@
 #include "pid.hpp"
 #include <math.h>
 
-// #include "arm_math.h"
+#include "arm_math.h"
 
 void PID_t::Calc_Input(float target, float feedback)
 {

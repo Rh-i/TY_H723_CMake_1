@@ -81,7 +81,6 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     User_lib
 )
 
-
 ### Add TinyUSB sources ###
 set(TINYUSB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tinyusb-0.20.0)
 include(${TINYUSB_DIR}/src/CMakeLists.txt)
@@ -101,6 +100,12 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
 # Add TinyUSB include to Userlib
 target_include_directories(User_lib PRIVATE
     ${TINYUSB_DIR}/src
+)
+
+# Add CMSIS-DSP include to Userlib
+target_include_directories(User_lib PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/CMSIS/DSP/Include
+    ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/CMSIS/DSP/Include/dsp
 )
 
 # Add project symbols (macros) <= tinyusb
