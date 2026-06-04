@@ -169,6 +169,17 @@ standard names. */
 
 /* USER CODE BEGIN Defines */
 /* Section where parameter definitions can be added (for instance, to override default ones in FreeRTOS.h) */
+#ifndef traceISR_ENTER
+#define traceISR_ENTER()
+#endif
+
+#ifndef traceISR_EXIT
+#define traceISR_EXIT()
+#endif
+
+#ifndef traceISR_EXIT_TO_SCHEDULER
+#define traceISR_EXIT_TO_SCHEDULER()
+#endif
 /* USER CODE END Defines */
 
 #endif /* FREERTOS_CONFIG_H */
