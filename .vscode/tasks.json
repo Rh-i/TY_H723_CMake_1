@@ -2,32 +2,101 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Win_OpenOCD",
+            "label": "OpenOCD_flash_win",
             "type": "process",
             "command": "Flash/OpenOCD_flash.bat",
             "group": "build",
             "problemMatcher": []
         },
         {
-            "label": "Win_JLink",
+            "label": "JLink_flash_win",
             "type": "process",
             "command": "Flash/JLink_flash.bat",
             "group": "build",
             "problemMatcher": []
         },
         {
-            "label": "Linux_OpenOCD",
+            "label": "OpenOCD_flash_linux",
             "type": "process",
             "command": "Flash/OpenOCD_flash.sh",
             "group": "build",
             "problemMatcher": []
         },
         {
-            "label": "Linux_JLink",
+            "label": "JLink_flash_linux",
             "type": "process",
             "command": "Flash/JLink_flash.sh",
             "group": "build",
             "problemMatcher": []
+        },
+        {
+            "label": "Configure",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--preset",
+                "Debug"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "problemMatcher": [],
+            "detail": "CMake 配置 (Debug)"
+        },
+        {
+            "label": "Build",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "build/Debug"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [],
+            "detail": "CMake 编译"
+        },
+        {
+            "label": "Clean_Rebuild",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "build/Debug",
+                "--clean-first"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": "build",
+            "problemMatcher": [],
+            "detail": "CMake 清理并重新编译"
+        },
+        {
+            "label": "Clean",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "build/Debug",
+                "--target",
+                "clean"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": "build",
+            "problemMatcher": [],
+            "detail": "CMake 清理"
         }
     ]
 }
