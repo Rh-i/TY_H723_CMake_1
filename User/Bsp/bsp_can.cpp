@@ -23,7 +23,7 @@ extern "C"
       {
         bsp_can2.process_fifo0_isr();
       }
-      else if(hfdcan == &hfdcan3)
+      else if (hfdcan == &hfdcan3)
       {
         bsp_can3.process_fifo0_isr();
       }
@@ -207,7 +207,7 @@ void BspCan::trigger_tx()
   if (HAL_FDCAN_GetTxFifoFreeLevel(_hfdcan) > 0)
   {
     CanTxMsg_t txMsg;
-    size_t len = xMessageBufferReceive(_tx_message_buffer, &txMsg, sizeof(CanTxMsg_t), 0);
+    size_t     len = xMessageBufferReceive(_tx_message_buffer, &txMsg, sizeof(CanTxMsg_t), 0);
     if (len > 0)
     {
       FDCAN_TxHeaderTypeDef txHeader;
@@ -238,7 +238,7 @@ void BspCan::trigger_tx_from_isr(BaseType_t *pxHigherPriorityTaskWoken)
   if (HAL_FDCAN_GetTxFifoFreeLevel(_hfdcan) > 0)
   {
     CanTxMsg_t txMsg;
-    size_t len = xMessageBufferReceiveFromISR(_tx_message_buffer, &txMsg, sizeof(CanTxMsg_t), pxHigherPriorityTaskWoken);
+    size_t     len = xMessageBufferReceiveFromISR(_tx_message_buffer, &txMsg, sizeof(CanTxMsg_t), pxHigherPriorityTaskWoken);
     if (len > 0)
     {
       FDCAN_TxHeaderTypeDef txHeader;

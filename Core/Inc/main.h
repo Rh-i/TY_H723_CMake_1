@@ -75,6 +75,8 @@ void Error_Handler(void);
 #define GYRO_GYRO_INT_Pin GPIO_PIN_12
 #define GYRO_GYRO_INT_GPIO_Port GPIOE
 #define GYRO_GYRO_INT_EXTI_IRQn EXTI15_10_IRQn
+#define BTB_GPIO_Pin GPIO_PIN_14
+#define BTB_GPIO_GPIO_Port GPIOE
 #define LCD_CS_Pin GPIO_PIN_15
 #define LCD_CS_GPIO_Port GPIOE
 #define LCD_BLK_Pin GPIO_PIN_10

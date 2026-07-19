@@ -23,6 +23,7 @@
 #include "adc.h"
 #include "dma.h"
 #include "fdcan.h"
+#include "i2c.h"
 #include "octospi.h"
 #include "spi.h"
 #include "tim.h"
@@ -105,7 +106,6 @@ int main(void)
   MX_ADC1_Init();
   MX_TIM12_Init();
   MX_SPI1_Init();
-  MX_SPI6_Init();
   MX_SPI2_Init();
   MX_TIM3_Init();
   MX_USART1_UART_Init();
@@ -118,6 +118,10 @@ int main(void)
   MX_TIM2_Init();
   MX_OCTOSPI2_Init();
   MX_USB_OTG_HS_PCD_Init();
+  MX_I2C1_Init();
+  MX_SPI3_Init();
+  MX_UART8_Init();
+  MX_UART9_Init();
   /* USER CODE BEGIN 2 */
   
   /* USER CODE END 2 */
