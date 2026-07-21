@@ -1,8 +1,9 @@
 #include "api_main.h"
-#include "FreeRTOS.h"
-#include "task.h"
-#include "main.h" // IWYU pragma: keep
+#include "FreeRTOS.h" // IWYU pragma: keep
+#include "main.h"     // IWYU pragma: keep
 #include "stdio.h"
+#include "task.h"
+
 
 /* BSP */
 #include "bsp_cfg.hpp"
@@ -49,7 +50,7 @@ void all_init()
 
 
 uint64_t defaultCount = 0;
-uint8_t data1[8]{'1','2','3','4','5','6','7','8'};
+uint8_t  data1[8] {'1', '2', '3', '4', '5', '6', '7', '8'};
 
 /**
  * @brief 默认任务，这个原本命名为_start_default_task。但是每次开FreeRTOS这个里面，默认是这个名字
@@ -68,9 +69,9 @@ extern "C" void StartDefaultTask(void *argument)
   for (;;)
   {
     // defaultCount++;
-    bsp_can1.send(0x101,data1);
-    bsp_can2.send(0x101,data1);
-    bsp_can3.send(0x101,data1);
+    bsp_can1.send(0x101, data1);
+    bsp_can2.send(0x101, data1);
+    bsp_can3.send(0x101, data1);
     vTaskDelay(pdMS_TO_TICKS(100));
   }
 }
