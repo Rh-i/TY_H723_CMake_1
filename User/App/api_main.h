@@ -11,8 +11,8 @@
  * @copyright Copyright (c) 2026
  *
  * @details 使用说明：
- *          - app_init()：在main.c的main函数中调用，用于无RTOS的初始化
- *          - freertos_init()：在FreeRTOS初始化阶段调用，用于创建任务和初始化外设
+ *          - all_init()：在FreeRTOS初始化阶段(MX_FREERTOS_Init)中调用，用于初始化外设
+ *          - StartDefaultTask()：默认任务，创建各业务任务并循环运行
  */
 
 #ifndef __API_MAIN_H__

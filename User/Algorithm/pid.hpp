@@ -1,5 +1,5 @@
 /**
- * @file pid.cpp
+ * @file pid.hpp
  * @author ChoseB (ChoseB@cumt.edu.cn)
  * @brief PID算法的封装
  * @version 0.1
@@ -76,13 +76,13 @@ struct _PID_Input_t
   float last_error;  // 上一误差值
 
   float delta_target; // 目标值微分，delta_target = target - last_target，也支持直接传入目标值微分
-  float delta_error;  // 误差值微分，delta_target = error - last_error，也支持直接传入误差值微分
+  float delta_error;  // 误差值微分，delta_error = error - last_error，也支持直接传入误差值微分
 };
 
 enum _PID_Diff_Calc_mode_t
 {
   Diff_target      = 0x01, // 使用delta_target来计算微分项
-  Diff_error       = 0x02, // 使用delta_target来计算微分项
+  Diff_error       = 0x02, // 使用delta_error来计算微分项
   Disable_PID_Diff = 0x00, // 不计算微分项目
 };
 

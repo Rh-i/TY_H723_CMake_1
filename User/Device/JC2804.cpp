@@ -24,7 +24,7 @@ const float JC2804::TEMPERATURE_SCALE = 0.1f;
 
 /**
  * @brief 构造函数
- * @param can_interface CAN接口指针
+ * @param can_interface CAN接口引用
  * @param device_id 设备ID
  */
 JC2804::JC2804(BspCan& can_interface, uint8_t device_id)
@@ -480,7 +480,7 @@ void JC2804::store_received_data(const uint8_t (&data)[8])
 /**
  * @brief 响应验证
  * @param expected_cmd 期望命令
- * @param rx_msg 接收消息指针
+ * @param rx_msg 接收消息引用
  * @return 验证结果
  */
 bool JC2804::validate_response(uint8_t expected_cmd, const CanRxMsg_t& rx_msg)

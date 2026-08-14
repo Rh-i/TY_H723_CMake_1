@@ -261,12 +261,12 @@ private:
   /* ==================== 私有成员函数 ==================== */
 
   /**
-   * @brief 浮点数转无符号整数
+   * @brief 浮点数转整数
    */
   int float_to_uint(float x_float, float x_min, float x_max, int bits);
 
   /**
-   * @brief 无符号整数转浮点数
+   * @brief 整数转浮点数
    */
   float uint_to_float(int x_int, float x_min, float x_max, int bits);
 
@@ -281,13 +281,6 @@ private:
    * @param data 数据数组引用
    */
   void update_quaternion(const uint8_t (&data)[8]);
-
-  /**
-   * @brief 处理接收数据
-   * @param pData 数据指针
-   */
-  void process_received_data(uint8_t* pData);
-
 
   /* ==================== 私有成员变量 ==================== */
 

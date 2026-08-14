@@ -126,7 +126,7 @@ void _uart_protocol_task_entry(void* argument)
  *
  * @attention 校验和计算：(header1+header2+CMD+LEN+DATA) & 0xFF
  *
- * @param uart_ptr 串口实例指针
+ * @param uart_ptr 串口实例引用
  * @param name 实例名称编号
  * @param h1 帧头1
  * @param h2 帧头2

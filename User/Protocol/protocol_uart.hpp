@@ -1,6 +1,6 @@
 /**
- * @file ProtocolUart.hpp
- * @author Rhprotocol_frame
+ * @file protocol_uart.hpp
+ * @author Rh
  * @brief 串口协议解析头文件
  * @version 0.1
  * @date 2026-02-17
@@ -13,8 +13,8 @@
  *
  * @note 使用示例：
  *       - 先实例化bsp_usart（在bsp文件中）
- *       - 全局类对象实例化：ProtocolUart protocal_uart_6(&bsp_usart6, 6);
- *       - 初始化协议：protocal_uart_6.init();
+ *       - 全局类对象实例化：ProtocolUart protocal_usart_1(bsp_usart1, 1);
+ *       - 初始化协议：protocal_usart_1.init();
  */
 
 #ifndef __PROTOCOL_UART_HPP__
@@ -57,7 +57,7 @@ typedef struct ProtocolFrame
   uint8_t len;      ///< 有效负载长度
   uint8_t data[64]; ///< 数据负载（最大64字节）
   uint8_t checksum; ///< 校验和
-  uint8_t tail;     ///< 帧尾（默认0x0D）
+  uint8_t tail;     ///< 帧尾（默认0x0C）
 } protocol_frame_t;
 #pragma pack()
 
@@ -105,11 +105,11 @@ public:
 
   /**
    * @brief 构造函数
-   * @param uart_ptr 串口实例指针
+   * @param uart_ptr 串口实例引用
    * @param name 实例名称编号
    * @param h1 帧头1（默认0xAA）
    * @param h2 帧头2（默认0x55）
-   * @param t 帧尾（默认0x0D）
+   * @param t 帧尾（默认0x0C）
    */
   ProtocolUart(BspUart<64, 8>& uart_ptr, uint8_t name, uint8_t h1 = 0xAA, uint8_t h2 = 0x55, uint8_t t = 0x0C);
 

@@ -39,7 +39,7 @@ extern "C"
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
     // 通过UART句柄指针查找对应的bsp_usart实例并处理
-    BspUart<128, 8> *instance = BspUart<128, 8>::get_instance_by_handle(huart);
+    BspUart<64, 8> *instance = BspUart<64, 8>::get_instance_by_handle(huart);
     if (instance != nullptr)
     {
       // 找到对应实例，调用内部处理函数
@@ -57,7 +57,7 @@ extern "C"
   {
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
-    BspUart<128, 8> *instance = BspUart<128, 8>::get_instance_by_handle(huart);
+    BspUart<64, 8> *instance = BspUart<64, 8>::get_instance_by_handle(huart);
     if (instance != nullptr)
     {
       instance->handle_tx_complete_from_isr(&xHigherPriorityTaskWoken);

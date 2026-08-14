@@ -1,5 +1,5 @@
 /**
- * @file BspUart.cpp
+ * @file bsp_uart.hpp
  * @author Rh
  * @brief 实现了一个简易的串口驱动（FreeRTOS）（只接收最新数据不能用FIFO）
  * @version 0.2
@@ -22,14 +22,14 @@
  *
  *   // 全局实例化类 在bsp_cfg.cpp中
  *   __attribute__((section(".dma_buffer")))
- *   BspUart<64,8> bsp_usart6(&huart6, ReceiveMode::SINGLE_BUFFER, true);
+ *   BspUart<64,8> bsp_usart1(&huart1, ReceiveMode::SINGLE_BUFFER, true, 1);
  *
- *   bsp_usart6.init();                           // 需要freertos内核初始化成功之后使用
+ *   bsp_usart1.init();                           // 需要freertos内核初始化成功之后使用
  *
  * @note extern好之后，在任务中使用
  *
- *    bsp_usart6.receive(buffer,8,osWaitForever); // 从自动中断接收的缓冲区里面接收，无需处理直接拿
- *    bsp_usart6.send(buffer,8);                  // 存入发送缓冲区，然后自动发送
+ *    bsp_usart1.receive(buffer,8,osWaitForever); // 从自动中断接收的缓冲区里面接收，无需处理直接拿
+ *    bsp_usart1.send(buffer,8);                  // 存入发送缓冲区，然后自动发送
  *
  */
 

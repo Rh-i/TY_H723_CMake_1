@@ -5,7 +5,7 @@
 #define PRINT_UART huart1
 
 /**
- * @brief ARM_GCC UART6 串口重定向、但阻塞 (printf)
+ * @brief ARM_GCC USART1 串口重定向、但阻塞 (printf)
  * @note extern "C" 的原因是，这些函数是覆盖在原来weak弱定义上的，不能被cpp进行名称修饰
  */
 extern "C" int __io_putchar(int ch)
@@ -58,7 +58,7 @@ BspCan bsp_can3(&hfdcan3, "CAN3");
  * @note 这个 __attribute__((section(".dma_buffer"))) 是把他放到dtcm区域外，在.ld格式文件下实现的
  *
  */
-__attribute__((section(".dma_buffer"))) BspUart<64, 8> bsp_usart1(&huart1, ReceiveMode::SINGLE_BUFFER, true, 1); // 添加实例ID为6
+__attribute__((section(".dma_buffer"))) BspUart<64, 8> bsp_usart1(&huart1, ReceiveMode::SINGLE_BUFFER, true, 1); // 添加实例ID为1
 
 
 ///< USB
