@@ -117,12 +117,12 @@ int main(void)
   MX_TIM2_Init();
   MX_OCTOSPI2_Init();
   MX_USB_OTG_HS_PCD_Init();
-  MX_SPI3_Init();
   MX_UART8_Init();
   MX_UART9_Init();
   MX_UART4_Init();
   MX_USART2_UART_Init();
   MX_USART3_UART_Init();
+  MX_UART5_Init();
   /* USER CODE BEGIN 2 */
   
   /* USER CODE END 2 */

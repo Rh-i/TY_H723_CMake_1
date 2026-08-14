@@ -9,7 +9,9 @@
  *
  *        ✅ CAN1/2/3   → bsp_can1/2/3.init()  [Message Buffer 收发]
  *        ✅ USART1     → bsp_uart1.init()     [IDLE RX DMA + FreeRTOS stream buffer]
+ *        ✅ USART3     → bsp_uart3.init()     [IDLE RX DMA + FreeRTOS stream buffer]
  *        ✅ UART4      → bsp_uart4.init()     [IDLE RX DMA + FreeRTOS stream buffer]
+ *        ✅ UART5      → bsp_uart5.init()     [IDLE RX DMA，无发送功能]
  *        ✅ UART7      → bsp_uart7.init()     [IDLE RX DMA + FreeRTOS stream buffer]
  *        ✅ UART8      → bsp_uart8.init()     [IDLE RX DMA + FreeRTOS stream buffer]
  *        ✅ UART9      → bsp_uart9.init()     [IDLE RX DMA + FreeRTOS stream buffer]
@@ -28,7 +30,9 @@ void bsp_init()
 
   // ── FreeRTOS 驱动的 UART ──
   bsp_uart1.init();
+  bsp_uart3.init();
   bsp_uart4.init();
+  bsp_uart5.init();
   bsp_uart7.init();
   bsp_uart8.init();
   bsp_uart9.init();
@@ -66,7 +70,10 @@ BspCan bsp_can3({&hfdcan3, "CAN3"});
  *
  */
 __attribute__((section(".dma_buffer"))) BspUart<128, 8> bsp_uart1({&huart1, ReceiveMode::SINGLE_BUFFER, true, 1});
+__attribute__((section(".dma_buffer"))) BspUart<128, 8> bsp_uart3({&huart3, ReceiveMode::SINGLE_BUFFER, true, 3});
 __attribute__((section(".dma_buffer"))) BspUart<128, 8> bsp_uart4({&huart4, ReceiveMode::SINGLE_BUFFER, true, 4});
+///< UART5 仅接收：CubeMX 未配 TX DMA，发送功能关闭（transmit_enable=false）
+__attribute__((section(".dma_buffer"))) BspUart<128, 8> bsp_uart5({&huart5, ReceiveMode::SINGLE_BUFFER, false, 5});
 __attribute__((section(".dma_buffer"))) BspUart<128, 8> bsp_uart7({&huart7, ReceiveMode::SINGLE_BUFFER, true, 7});
 __attribute__((section(".dma_buffer"))) BspUart<128, 8> bsp_uart8({&huart8, ReceiveMode::SINGLE_BUFFER, true, 8});
 __attribute__((section(".dma_buffer"))) BspUart<128, 8> bsp_uart9({&huart9, ReceiveMode::SINGLE_BUFFER, true, 9});

@@ -8,7 +8,7 @@
  * @copyright Copyright (c) 2026
  *
  * @details 未来在此实现数据分发任务（接入业务后填充）：
- *          - CAN 分发任务：一路 CAN 挂多个设备（如 CAN1 上的 JC2804×2 + DM IMU），
+ *          - CAN 分发任务：一路 CAN 挂多个设备（如 CAN1 上的多个电机 + DM IMU），
  *            按帧 ID 路由到对应设备回调
  *          - UART 分发任务：一个串口挂多个设备（如一个 UART 上的多个 EmmV5 电机），
  *            按帧首字节地址路由到对应设备回调

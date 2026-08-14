@@ -1,12 +1,12 @@
-#include "Lcd.hpp"
+#include "lcd.hpp"
 
-#include "LcdFont.hpp" // 字库数据（namespace lcd_font）
+#include "lcd_font.hpp" // 字库数据（namespace lcd_font）
 #include "main.h"      // GPIO 引脚宏
 #include "spi.h"       // hspi1
 
 /* ==================== 编译期配置（原 lcd.h 宏） ==================== */
 
-///< 0/1 = 竖屏，2/3 = 横屏（原 USE_HORIZONTAL；软件 SPI 分支已随重构移除，固定硬件 SPI）
+///< 0/1 = 竖屏，2/3 = 横屏（文件内静态配置；LCD 无构造参数，屏幕方向如需运行时切换可改 Config 传入）
 static constexpr int k_use_horizontal = 1;
 
 
@@ -82,7 +82,7 @@ void Lcd::address_set(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2)
 /**
  * @brief 指定区域填充颜色
  */
-void Lcd::fill(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint16_t color)
+void Lcd::fill(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, Color color)
 {
   uint16_t i, j;
   address_set(x0, y0, x1 - 1, y1 - 1); // 设置显示范围
@@ -90,7 +90,7 @@ void Lcd::fill(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint16_t colo
   {
     for (j = x0; j < x1; j++)
     {
-      wr_data(color);
+      wr_data(static_cast<uint16_t>(color));
     }
   }
 }
@@ -98,16 +98,16 @@ void Lcd::fill(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint16_t colo
 /**
  * @brief 画点
  */
-void Lcd::draw_point(uint16_t x, uint16_t y, uint16_t color)
+void Lcd::draw_point(uint16_t x, uint16_t y, Color color)
 {
   address_set(x, y, x, y); // 设置光标位置
-  wr_data(color);
+  wr_data(static_cast<uint16_t>(color));
 }
 
 /**
  * @brief 画线（Bresenham）
  */
-void Lcd::draw_line(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color)
+void Lcd::draw_line(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, Color color)
 {
   uint16_t t;
   int      xerr = 0, yerr = 0, delta_x, delta_y, distance;
@@ -160,7 +160,7 @@ void Lcd::draw_line(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t
 /**
  * @brief 画矩形（四条边）
  */
-void Lcd::draw_rectangle(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color)
+void Lcd::draw_rectangle(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, Color color)
 {
   draw_line(x1, y1, x2, y1, color);
   draw_line(x1, y1, x1, y2, color);
@@ -171,7 +171,7 @@ void Lcd::draw_rectangle(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uin
 /**
  * @brief 画圆（中点画圆法）
  */
-void Lcd::draw_circle(uint16_t x0, uint16_t y0, uint8_t r, uint16_t color)
+void Lcd::draw_circle(uint16_t x0, uint16_t y0, uint8_t r, Color color)
 {
   int a = 0, b = r;
   while (a <= b)
@@ -198,7 +198,7 @@ void Lcd::draw_circle(uint16_t x0, uint16_t y0, uint8_t r, uint16_t color)
 /**
  * @brief 显示单个字符
  */
-void Lcd::show_char(uint16_t x, uint16_t y, uint8_t num, uint16_t fc, uint16_t bc, uint8_t sizey, uint8_t mode)
+void Lcd::show_char(uint16_t x, uint16_t y, uint8_t num, Color fc, Color bc, uint8_t sizey, uint8_t mode)
 {
   uint8_t  temp, sizex, t, m = 0;
   uint16_t i, TypefaceNum; // 一个字符所占字节大小
@@ -224,9 +224,9 @@ void Lcd::show_char(uint16_t x, uint16_t y, uint8_t num, uint16_t fc, uint16_t b
       if (!mode) // 非叠加模式
       {
         if (temp & (0x01 << t))
-          wr_data(fc);
+          wr_data(static_cast<uint16_t>(fc));
         else
-          wr_data(bc);
+          wr_data(static_cast<uint16_t>(bc));
         m++;
         if (m % sizex == 0)
         {
@@ -253,7 +253,7 @@ void Lcd::show_char(uint16_t x, uint16_t y, uint8_t num, uint16_t fc, uint16_t b
 /**
  * @brief 显示字符串
  */
-void Lcd::show_string(uint16_t x, uint16_t y, const char *s, uint16_t fc, uint16_t bc, uint8_t sizey, uint8_t mode)
+void Lcd::show_string(uint16_t x, uint16_t y, const char *s, Color fc, Color bc, uint8_t sizey, uint8_t mode)
 {
   while (*s != '\0')
   {
@@ -277,7 +277,7 @@ uint32_t Lcd::mypow(uint8_t m, uint8_t n)
 /**
  * @brief 显示整数
  */
-void Lcd::show_int_num(uint16_t x, uint16_t y, uint16_t num, uint8_t len, uint16_t fc, uint16_t bc, uint8_t sizey)
+void Lcd::show_int_num(uint16_t x, uint16_t y, uint16_t num, uint8_t len, Color fc, Color bc, uint8_t sizey)
 {
   uint8_t t, temp;
   uint8_t enshow = 0;
@@ -302,7 +302,7 @@ void Lcd::show_int_num(uint16_t x, uint16_t y, uint16_t num, uint8_t len, uint16
 /**
  * @brief 显示十六进制数字
  */
-void Lcd::show_hex_num(uint16_t x, uint16_t y, uint16_t num, uint8_t len, uint16_t fc, uint16_t bc, uint8_t sizey)
+void Lcd::show_hex_num(uint16_t x, uint16_t y, uint16_t num, uint8_t len, Color fc, Color bc, uint8_t sizey)
 {
   uint8_t    t, temp;
   uint8_t    enshow      = 0;
@@ -328,7 +328,7 @@ void Lcd::show_hex_num(uint16_t x, uint16_t y, uint16_t num, uint8_t len, uint16
 /**
  * @brief 显示带符号浮点数
  */
-void Lcd::show_float_num(uint16_t x, uint16_t y, float num, uint8_t len, uint8_t decimal, uint16_t fc, uint16_t bc, uint8_t sizey)
+void Lcd::show_float_num(uint16_t x, uint16_t y, float num, uint8_t len, uint8_t decimal, Color fc, Color bc, uint8_t sizey)
 {
   int16_t num_int;
   uint8_t t, temp, sizex;
@@ -368,7 +368,7 @@ void Lcd::show_float_num(uint16_t x, uint16_t y, float num, uint8_t len, uint8_t
 /**
  * @brief 显示正浮点数
  */
-void Lcd::show_float_num1(uint16_t x, uint16_t y, float num, uint8_t len, uint8_t decimal, uint16_t fc, uint16_t bc, uint8_t sizey)
+void Lcd::show_float_num1(uint16_t x, uint16_t y, float num, uint8_t len, uint8_t decimal, Color fc, Color bc, uint8_t sizey)
 {
   int16_t num_int;
   uint8_t t, temp, sizex;
@@ -417,7 +417,7 @@ void Lcd::show_picture(uint16_t x, uint16_t y, uint16_t length, uint16_t width, 
 /* ==================== 初始化 ==================== */
 
 /**
- * @brief 短忙延时（约 1M 次空循环，原 lcd.c 时序）
+ * @brief 短忙延时（100 万次空循环，约 10ms 量级，具体取决于主频；原 lcd.c 时序）
  */
 static inline void lcd_delay()
 {
@@ -445,13 +445,21 @@ Status Lcd::init()
 
   wr_reg(0x36);
   if (k_use_horizontal == 0)
+  {
     wr_data8(0x00);
+  }
   else if (k_use_horizontal == 1)
+  {
     wr_data8(0xC0);
+  }
   else if (k_use_horizontal == 2)
+  {
     wr_data8(0x70);
+  }
   else
+  {
     wr_data8(0xA0);
+  }
 
   wr_reg(0x3A);
   wr_data8(0x05);

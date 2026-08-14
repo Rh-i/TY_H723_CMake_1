@@ -8,12 +8,12 @@
  * @copyright Copyright (c) 2026
  *
  * @details 菜单逻辑全部在本模块：
- *   - menu_init()         ：LCD 初始化 + 绘制菜单（TASK_1/2/3，选中项高亮）
+ *   - menu_init()         ：绘制首屏（LCD 硬件初始化在 device_init() 中完成）
  *   - menu_on_short_press()：短按切换选中项（1→2→3→1），蜂鸣提示
  *   - menu_on_long_press() ：长按触发当前选中项（give menu_sem[sel]），蜂鸣提示
  *
  *   menu_sem[0/1/2] 分别对应菜单项 1/2/3，
- *   由 task_menu.cpp 的 msg_task_task1/2/3 消费。
+ *   由 msg_task.cpp 的 msg_task_task1/2/3 消费。
  */
 
 #ifndef __MENU_HPP__

@@ -13,7 +13,7 @@
 #ifndef __DATA_PACK_HPP__
 #define __DATA_PACK_HPP__
 
-#include "cmsis_os2.h"
+#include "status.hpp" // 统一状态码
 
 /** @brief 单帧数据区最大字节数。 */
 #define DATA_PACK_MAX_LENGTH 100
@@ -118,69 +118,69 @@ private:
    * @brief 添加一个数据源条目。
    * @param addr 变量地址。
    * @param type 变量类型。
-   * @return osStatus_t 添加结果。
+   * @return Status 添加结果。
    */
-  osStatus_t link_data_entry(void* addr, VarType type);
+  Status link_data_entry(void* addr, VarType type);
 
 public:
   /** @brief 析构函数。 */
   ~DataPack();
 
   /** @brief 绑定 uint8_t 变量地址。 */
-  osStatus_t link_data(uint8_t* data_source);
+  Status link_data(uint8_t* data_source);
   /** @brief 绑定 uint16_t 变量地址。 */
-  osStatus_t link_data(uint16_t* data_source);
+  Status link_data(uint16_t* data_source);
   /** @brief 绑定 uint32_t 变量地址。 */
-  osStatus_t link_data(uint32_t* data_source);
+  Status link_data(uint32_t* data_source);
   /** @brief 绑定 uint64_t 变量地址。 */
-  osStatus_t link_data(uint64_t* data_source);
+  Status link_data(uint64_t* data_source);
   /** @brief 绑定 int8_t 变量地址。 */
-  osStatus_t link_data(int8_t* data_source);
+  Status link_data(int8_t* data_source);
   /** @brief 绑定 int16_t 变量地址。 */
-  osStatus_t link_data(int16_t* data_source);
+  Status link_data(int16_t* data_source);
   /** @brief 绑定 int32_t 变量地址。 */
-  osStatus_t link_data(int32_t* data_source);
+  Status link_data(int32_t* data_source);
   /** @brief 绑定 int64_t 变量地址。 */
-  osStatus_t link_data(int64_t* data_source);
+  Status link_data(int64_t* data_source);
   /** @brief 绑定 float 变量地址。 */
-  osStatus_t link_data(float* data_source);
+  Status link_data(float* data_source);
   /** @brief 绑定 double 变量地址。 */
-  osStatus_t link_data(double* data_source);
+  Status link_data(double* data_source);
 
   /**
    * @brief 绑定字符串地址。
    * @param str 以 '\0' 结束的字符串地址。
-   * @return osStatus_t 绑定结果。
+   * @return Status 绑定结果。
    */
-  osStatus_t link_data(const char* str);
+  Status link_data(const char* str);
 
   /**
    * @brief 关联一个 DataPack，并复制其数据源条目到当前对象。
    * @param pack_source 源包对象。
-   * @return osStatus_t 关联结果。
+   * @return Status 关联结果。
    */
-  osStatus_t link_data_pack(DataPack* pack_source);
+  Status link_data_pack(DataPack* pack_source);
 
   /**
    * @brief 从已绑定变量读取值并打包到内部缓存。
-   * @return osStatus_t 打包结果。
+   * @return Status 打包结果。
    */
-  osStatus_t get_data();
+  Status get_data();
 
   /**
    * @brief 将内部缓存按绑定顺序解包并写回变量。
-   * @return osStatus_t 解包结果。
+   * @return Status 解包结果。
    */
-  osStatus_t distribute_data();
+  Status distribute_data();
 
   /**
    * @brief 打包并通过 USB CDC 发送数据。
    *
    * @details
    * 发送帧格式：`[header][payload][tail_hash]`，其中 `tail_hash` 为 payload 的哈希值。
-   * @return osStatus_t 发送结果。
+   * @return Status 发送结果。
    */
-  osStatus_t send_data();
+  Status send_data();
 
   /**
    * @brief 从 USB CDC 接收数据并分发到已绑定变量。
@@ -190,9 +190,9 @@ public:
    * 1) 帧头匹配；
    * 2) 尾部哈希与 payload 计算值一致；
    * 3) STR 模式下字符串字段内容一致。
-   * @return osStatus_t 接收与分发结果。
+   * @return Status 接收与分发结果。
    */
-  osStatus_t receive_data();
+  Status receive_data();
 };
 
 #endif // __DATA_PACK_HPP__

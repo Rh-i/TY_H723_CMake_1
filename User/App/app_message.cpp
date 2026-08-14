@@ -8,7 +8,7 @@
  * @brief CAN 数据分发任务
  *
  * @note 接入业务后实现：轮询 bsp_can1.receive() 取帧，
- *       按帧 ID 分发到各设备回调（如 JC2804 的 on_can_message()、IMU 的 on_can_message()）。
+ *       按帧 ID 分发到各设备回调（如 DM IMU 的 on_can_message()）。
  *
  * @param argument 任务参数（未使用，NULL）
  */

@@ -15,6 +15,7 @@
 
 #define CONFIG_TOTAL_LEN (TUD_CONFIG_DESC_LEN + TUD_CDC_DESC_LEN)
 
+///< 接口编号（匿名 enum：TinyUSB 描述符宏参数场景，豁免 enum class 规范）
 enum
 {
   ITF_NUM_CDC = 0,
@@ -97,7 +98,7 @@ bool BspUsb::mounted() const
  */
 bool BspUsb::cdc_write(const uint8_t* data, uint32_t len)
 {
-  if ((data == NULL) || (len == 0u))
+  if ((data == nullptr) || (len == 0u))
   {
     return false;
   }
@@ -120,7 +121,7 @@ bool BspUsb::cdc_write(const uint8_t* data, uint32_t len)
  */
 uint32_t BspUsb::cdc_read(uint8_t* data, uint32_t len)
 {
-  if ((data == NULL) || (len == 0u))
+  if ((data == nullptr) || (len == 0u))
   {
     return 0u;
   }
@@ -224,6 +225,7 @@ extern "C" uint8_t const* tud_descriptor_configuration_cb(uint8_t index)
   return desc_configuration;
 }
 
+///< 字符串描述符索引（匿名 enum：TinyUSB 描述符回调索引场景，豁免 enum class 规范）
 enum
 {
   STRID_LANGID = 0,
@@ -263,14 +265,14 @@ extern "C" uint16_t const* tud_descriptor_string_cb(uint8_t index, uint16_t lang
   {
     if (index >= sizeof(string_desc_arr) / sizeof(string_desc_arr[0]))
     {
-      return NULL;
+      return nullptr;
     }
 
     const char* str = string_desc_arr[index];
     chr_count       = (uint8_t)strlen(str);
     if (chr_count > 31)
     {
-      chr_count = 31;
+      chr_count = 31; // 防溢出：_desc_str 仅 32 元素（[1+i] 最大下标 31）
     }
 
     for (uint8_t i = 0; i < chr_count; i++)

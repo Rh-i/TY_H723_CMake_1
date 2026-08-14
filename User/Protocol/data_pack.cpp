@@ -20,41 +20,41 @@ uint8_t calc_payload_hash(const uint8_t* payload, uint32_t len)
 }
 
 template <typename T>
-osStatus_t append_value(uint8_t* buffer, uint32_t capacity, uint32_t* used, const T* value)
+Status append_value(uint8_t* buffer, uint32_t capacity, uint32_t* used, const T* value)
 {
   if ((buffer == nullptr) || (used == nullptr) || (value == nullptr))
   {
-    return osErrorParameter;
+    return Status::BAD_ARG;
   }
 
   const uint32_t size = static_cast<uint32_t>(sizeof(T));
   if ((*used + size) > capacity)
   {
-    return osErrorResource;
+    return Status::FULL;
   }
 
   memcpy(&buffer[*used], value, size);
   *used += size;
-  return osOK;
+  return Status::OK;
 }
 
 template <typename T>
-osStatus_t extract_value(const uint8_t* buffer, uint32_t length, uint32_t* offset, T* out)
+Status extract_value(const uint8_t* buffer, uint32_t length, uint32_t* offset, T* out)
 {
   if ((buffer == nullptr) || (offset == nullptr) || (out == nullptr))
   {
-    return osErrorParameter;
+    return Status::BAD_ARG;
   }
 
   const uint32_t size = static_cast<uint32_t>(sizeof(T));
   if ((*offset + size) > length)
   {
-    return osErrorResource;
+    return Status::FULL;
   }
 
   memcpy(out, &buffer[*offset], size);
   *offset += size;
-  return osOK;
+  return Status::OK;
 }
 } // namespace
 
@@ -93,26 +93,26 @@ void DataPack::clear_data()
  * @brief 添加一个数据源条目。
  * @param addr 变量地址。
  * @param type 变量类型。
- * @return osStatus_t 添加结果。
+ * @return Status 添加结果。
  */
-osStatus_t DataPack::link_data_entry(void* addr, VarType type)
+Status DataPack::link_data_entry(void* addr, VarType type)
 {
   if (addr == nullptr)
   {
-    return osErrorParameter;
+    return Status::BAD_ARG;
   }
 
   if (_data_source_length >= DATA_PACK_MAX_LENGTH)
   {
-    return osErrorResource;
+    return Status::FULL;
   }
 
   this->_data_source[_data_source_length++] = {addr, type};
-  return osOK;
+  return Status::OK;
 }
 
 #define DATA_PACK_LINK_IMPL(_ctype, _vartype)          \
-  osStatus_t DataPack::link_data(_ctype* data_source)  \
+  Status DataPack::link_data(_ctype* data_source)      \
   {                                                    \
     return link_data_entry(data_source, _vartype);     \
   }
@@ -130,7 +130,7 @@ DATA_PACK_LINK_IMPL(double, VarType::DOUBLE)
 
 #undef DATA_PACK_LINK_IMPL
 
-osStatus_t DataPack::link_data(const char* str)
+Status DataPack::link_data(const char* str)
 {
   return link_data_entry(const_cast<char*>(str), VarType::STRING);
 }
@@ -138,23 +138,23 @@ osStatus_t DataPack::link_data(const char* str)
 /**
  * @brief 关联一个数据包并复制其数据源条目。
  * @param pack_source 源数据包。
- * @return osStatus_t 关联结果。
+ * @return Status 关联结果。
  */
-osStatus_t DataPack::link_data_pack(DataPack* pack_source)
+Status DataPack::link_data_pack(DataPack* pack_source)
 {
   if (pack_source == nullptr)
   {
-    return osErrorParameter;
+    return Status::BAD_ARG;
   }
 
   if (_data_pack_source_length >= DATA_PACK_MAX_LENGTH)
   {
-    return osErrorResource;
+    return Status::FULL;
   }
 
   if ((_data_source_length + pack_source->_data_source_length) > DATA_PACK_MAX_LENGTH)
   {
-    return osErrorResource;
+    return Status::FULL;
   }
 
   _data_pack_source[_data_pack_source_length++] = pack_source;
@@ -164,21 +164,21 @@ osStatus_t DataPack::link_data_pack(DataPack* pack_source)
     _data_source[_data_source_length++] = pack_source->_data_source[i];
   }
 
-  return osOK;
+  return Status::OK;
 }
 
 /**
  * @brief 从绑定变量打包到内部缓存。
- * @return osStatus_t 打包结果。
+ * @return Status 打包结果。
  */
-osStatus_t DataPack::get_data()
+Status DataPack::get_data()
 {
   clear_data();
 
   for (uint32_t i = 0; i < _data_source_length; ++i)
   {
     const VarEntry& entry = _data_source[i];
-    osStatus_t      status = osError;
+    Status          status = Status::IO_ERROR;
 
     if (_data_format == DataFormat::STR)
     {
@@ -221,13 +221,13 @@ osStatus_t DataPack::get_data()
         {
           if (entry.addr == nullptr)
           {
-            return osErrorParameter;
+            return Status::BAD_ARG;
           }
           const char* str = static_cast<const char*>(entry.addr);
           uint32_t    len = static_cast<uint32_t>(strlen(str));
           if ((_data_length + len + ((i + 1u < _data_source_length) ? 1u : 0u)) > DATA_PACK_MAX_LENGTH)
           {
-            return osErrorResource;
+            return Status::FULL;
           }
           memcpy(&_data[_data_length], str, len);
           _data_length += len;
@@ -235,11 +235,11 @@ osStatus_t DataPack::get_data()
           {
             _data[_data_length++] = ',';
           }
-          status = osOK;
+          status = Status::OK;
           break;
         }
         default:
-          return osError;
+          return Status::IO_ERROR;
       }
 
       if (entry.type != VarType::STRING)
@@ -247,7 +247,7 @@ osStatus_t DataPack::get_data()
         uint32_t len = static_cast<uint32_t>(strlen(token));
         if ((_data_length + len + ((i + 1u < _data_source_length) ? 1u : 0u)) > DATA_PACK_MAX_LENGTH)
         {
-          return osErrorResource;
+          return Status::FULL;
         }
         memcpy(&_data[_data_length], token, len);
         _data_length += len;
@@ -255,10 +255,10 @@ osStatus_t DataPack::get_data()
         {
           _data[_data_length++] = ',';
         }
-        status = osOK;
+        status = Status::OK;
       }
 
-      if (status != osOK)
+      if (status != Status::OK)
       {
         return status;
       }
@@ -302,7 +302,7 @@ osStatus_t DataPack::get_data()
       {
         if (entry.addr == nullptr)
         {
-          status = osErrorParameter;
+          status = Status::BAD_ARG;
           break;
         }
 
@@ -310,29 +310,29 @@ osStatus_t DataPack::get_data()
         uint32_t    len = static_cast<uint32_t>(strlen(str)) + 1u;
         if ((_data_length + len) > DATA_PACK_MAX_LENGTH)
         {
-          status = osErrorResource;
+          status = Status::FULL;
           break;
         }
         memcpy(&_data[_data_length], str, len);
         _data_length += len;
-        status = osOK;
+        status = Status::OK;
         break;
       }
       default:
-        status = osError;
+        status = Status::IO_ERROR;
         break;
     }
 
-    if (status != osOK)
+    if (status != Status::OK)
     {
       return status;
     }
   }
 
-  return osOK;
+  return Status::OK;
 }
 
-osStatus_t DataPack::distribute_data()
+Status DataPack::distribute_data()
 {
   if (_data_format == DataFormat::STR)
   {
@@ -352,7 +352,7 @@ osStatus_t DataPack::distribute_data()
       char     token[DATA_PACK_MAX_LENGTH + 1];
       if (token_len > DATA_PACK_MAX_LENGTH)
       {
-        return osErrorResource;
+        return Status::FULL;
       }
 
       memcpy(token, &_data[start], token_len);
@@ -397,18 +397,18 @@ osStatus_t DataPack::distribute_data()
           const char* expected = static_cast<const char*>(entry.addr);
           if ((expected == nullptr) || (strcmp(expected, token) != 0))
           {
-            return osError;
+            return Status::IO_ERROR;
           }
           endptr = token + token_len;
           break;
         }
         default:
-          return osError;
+          return Status::IO_ERROR;
       }
 
       if ((entry.type != VarType::STRING) && ((endptr == nullptr) || (*endptr != '\0')))
       {
-        return osError;
+        return Status::IO_ERROR;
       }
 
       if (offset < _data_length)
@@ -419,10 +419,10 @@ osStatus_t DataPack::distribute_data()
 
     if (offset < _data_length)
     {
-      return osError;
+      return Status::IO_ERROR;
     }
 
-    return osOK;
+    return Status::OK;
   }
 
   uint32_t offset = 0;
@@ -430,7 +430,7 @@ osStatus_t DataPack::distribute_data()
   for (uint32_t i = 0; i < _data_source_length; ++i)
   {
     const VarEntry& entry  = _data_source[i];
-    osStatus_t      status = osError;
+    Status          status = Status::IO_ERROR;
 
     switch (entry.type)
     {
@@ -468,7 +468,7 @@ osStatus_t DataPack::distribute_data()
       {
         if (offset >= _data_length)
         {
-          return osErrorResource;
+          return Status::FULL;
         }
 
         while ((offset < _data_length) && (_data[offset] != '\0'))
@@ -477,41 +477,41 @@ osStatus_t DataPack::distribute_data()
         }
         if (offset >= _data_length)
         {
-          return osErrorResource;
+          return Status::FULL;
         }
         offset++; // 跳过 '\0'
-        status = osOK;
+        status = Status::OK;
         break;
       }
       default:
-        status = osError;
+        status = Status::IO_ERROR;
         break;
     }
 
-    if (status != osOK)
+    if (status != Status::OK)
     {
       return status;
     }
   }
 
-  return osOK;
+  return Status::OK;
 }
 
 /**
  * @brief 打包后发送到 USB CDC。
- * @return osStatus_t 发送结果。
+ * @return Status 发送结果。
  */
-osStatus_t DataPack::send_data()
+Status DataPack::send_data()
 {
-  osStatus_t status = get_data();
-  if (status != osOK)
+  Status status = get_data();
+  if (status != Status::OK)
   {
     return status;
   }
 
   if (_data_length == 0u)
   {
-    return osErrorResource;
+    return Status::FULL;
   }
 
   const uint8_t tail_hash = calc_payload_hash(_data, _data_length);
@@ -520,22 +520,22 @@ osStatus_t DataPack::send_data()
 
   if (!bsp_usb.cdc_write(_data, _data_length))
   {
-    return osError;
+    return Status::IO_ERROR;
   }
 
-  return osOK;
+  return Status::OK;
 }
 
 /**
  * @brief 从 USB CDC 接收后分发到绑定变量。
- * @return osStatus_t 接收与分发结果。
+ * @return Status 接收与分发结果。
  */
-osStatus_t DataPack::receive_data()
+Status DataPack::receive_data()
 {
   uint32_t available = bsp_usb.cdc_available();
   if (available == 0u)
   {
-    return osErrorResource;
+    return Status::FULL;
   }
 
   if (available > (DATA_PACK_MAX_LENGTH))
@@ -547,12 +547,12 @@ osStatus_t DataPack::receive_data()
   uint32_t read_len = bsp_usb.cdc_read(frame, available);
   if (read_len == 0u)
   {
-    return osErrorResource;
+    return Status::FULL;
   }
 
   if (read_len < 3u)
   {
-    return osError;
+    return Status::IO_ERROR;
   }
 
   uint32_t start = 0;
@@ -562,21 +562,21 @@ osStatus_t DataPack::receive_data()
   }
   if (start >= read_len)
   {
-    return osError;
+    return Status::IO_ERROR;
   }
 
   // 协议固定为：[header][payload][tail_hash]
   const uint32_t end = read_len - 1u;
   if (end <= start)
   {
-    return osError;
+    return Status::IO_ERROR;
   }
 
   uint32_t payload_len = end - start - 0u;
   payload_len -= 1u;
   if (payload_len > DATA_PACK_MAX_LENGTH)
   {
-    return osErrorResource;
+    return Status::FULL;
   }
 
   memcpy(_data, &frame[start + 1u], payload_len);
@@ -585,7 +585,7 @@ osStatus_t DataPack::receive_data()
   const uint8_t calc_tail_hash = calc_payload_hash(_data, payload_len);
   if (recv_tail_hash != calc_tail_hash)
   {
-    return osError;
+    return Status::IO_ERROR;
   }
 
   _data_length = payload_len;

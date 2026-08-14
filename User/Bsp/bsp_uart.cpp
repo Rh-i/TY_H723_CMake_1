@@ -30,9 +30,17 @@ extern "C"
     {
       bsp_uart1.handle_idle_interrupt_internal(huart, Size, &xHigherPriorityTaskWoken);
     }
+    else if (huart == &huart3)
+    {
+      bsp_uart3.handle_idle_interrupt_internal(huart, Size, &xHigherPriorityTaskWoken);
+    }
     else if (huart == &huart4)
     {
       bsp_uart4.handle_idle_interrupt_internal(huart, Size, &xHigherPriorityTaskWoken);
+    }
+    else if (huart == &huart5)
+    {
+      bsp_uart5.handle_idle_interrupt_internal(huart, Size, &xHigherPriorityTaskWoken);
     }
     else if (huart == &huart7)
     {
@@ -62,9 +70,14 @@ extern "C"
   {
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
+    // 注：UART5 无发送功能（未配 TX DMA），不会触发本回调，故无 huart5 分支
     if (huart == &huart1)
     {
       bsp_uart1.handle_tx_complete_from_isr(&xHigherPriorityTaskWoken);
+    }
+    else if (huart == &huart3)
+    {
+      bsp_uart3.handle_tx_complete_from_isr(&xHigherPriorityTaskWoken);
     }
     else if (huart == &huart4)
     {
@@ -553,6 +566,7 @@ void BspUart<BUFFER_SIZE, MSG_SIZE>::handle_idle_interrupt_from_isr(uint32_t rec
         uint8_t temp_latest_data[MSG_SIZE] = {0}; // 初始化为0
         memcpy(temp_latest_data, _rx_dma_buffer, received_length);
 
+        // TODO AI说这里有问题 这里清空队列 但是说ISR中不能用正常的清空 
         xQueueReset(_msg_queue_id);
 
         xQueueSendFromISR(_msg_queue_id, temp_latest_data, pxHigherPriorityTaskWoken);
@@ -567,7 +581,6 @@ void BspUart<BUFFER_SIZE, MSG_SIZE>::handle_idle_interrupt_from_isr(uint32_t rec
     break;
 
     case ReceiveMode::SINGLE_BUFFER:
-    case ReceiveMode::DOUBLE_BUFFER:
     {
       // 对于其他模式，将整个数据包放入流缓冲区
       StreamBufferHandle_t target_buffer = nullptr;
@@ -649,9 +662,6 @@ void BspUart<BUFFER_SIZE, MSG_SIZE>::handle_dma_error()
 {
   // 停止当前传输
   HAL_UART_DMAStop(_huart);
-
-  // 记录错误日志（实际应用中应使用适当的日志系统）
-  printf("\n\n Error \n\n");
 
   // 尝试重启接收
   if (_rx_active)

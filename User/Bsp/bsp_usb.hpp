@@ -1,9 +1,3 @@
-#ifndef __BSP_USB_HPP__
-#define __BSP_USB_HPP__
-
-#include <stdbool.h>
-#include <stdint.h>
-
 /**
  * @file bsp_usb.hpp
  * @brief TinyUSB 的 BSP 封装接口。
@@ -15,6 +9,12 @@
  * - 连接状态查询
  * - CDC 接收回调注册
  */
+
+#ifndef __BSP_USB_HPP__
+#define __BSP_USB_HPP__
+
+#include <stdbool.h>
+#include <stdint.h>
 
 
 /**

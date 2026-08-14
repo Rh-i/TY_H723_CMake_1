@@ -13,9 +13,9 @@
  */
 DmImu::DmImu(const Config &cfg)
 
-  : _device_id(cfg.device_id),
-    _master_id(cfg.master_id),
-    _can_bus(cfg.can_bus)
+  : _can_bus(cfg.can_bus),
+    _device_id(cfg.device_id),
+    _master_id(cfg.master_id)
 {
   // 构造函数只做赋值；数据区初始化推迟到 init()
 }
@@ -27,10 +27,10 @@ DmImu::DmImu(const Config &cfg)
 DmImu::~DmImu()
 {
   /* 删除互斥锁 */
-  if (_data_mutex_handle != NULL)
+  if (_data_mutex_handle != nullptr)
   {
     vSemaphoreDelete(_data_mutex_handle);
-    _data_mutex_handle = NULL;
+    _data_mutex_handle = nullptr;
   }
 }
 
@@ -221,7 +221,7 @@ ImuData DmImu::get_imu_data()
 {
   ImuData data_copy;
 
-  if (_data_mutex_handle != NULL)
+  if (_data_mutex_handle != nullptr)
   {
     xSemaphoreTake(_data_mutex_handle, portMAX_DELAY);
   }
@@ -230,7 +230,7 @@ ImuData DmImu::get_imu_data()
   data_copy = _imu_data;
 
   /* 退出临界区：释放互斥锁 */
-  if (_data_mutex_handle != NULL)
+  if (_data_mutex_handle != nullptr)
   {
     xSemaphoreGive(_data_mutex_handle);
   }
@@ -245,7 +245,7 @@ ImuData DmImu::get_imu_data()
  */
 void DmImu::set_imu_data(const ImuData& data)
 {
-  if (_data_mutex_handle != NULL)
+  if (_data_mutex_handle != nullptr)
   {
     xSemaphoreTake(_data_mutex_handle, portMAX_DELAY);
   }
@@ -254,7 +254,7 @@ void DmImu::set_imu_data(const ImuData& data)
   _imu_data = data;
 
   /* 退出临界区：释放互斥锁并恢复中断 */
-  if (_data_mutex_handle != NULL)
+  if (_data_mutex_handle != nullptr)
   {
     xSemaphoreGive(_data_mutex_handle);
   }
@@ -273,9 +273,9 @@ void DmImu::set_imu_data(const ImuData& data)
  * @param bits 位数
  * @return int 转换后的整数
  */
-int DmImu::float_to_uint(float value, float min, float max, int bits)
+int DmImu::float_to_int(float value, float min, float max, int bits)
 {
-  /* Converts a float to an unsigned int, given range and number of bits */
+  /* 将浮点数按给定范围与位数映射到整数 */
   float span   = max - min;
   float offset = min;
   return (int)((value - offset) * ((float)((1 << bits) - 1)) / span);
@@ -293,7 +293,7 @@ int DmImu::float_to_uint(float value, float min, float max, int bits)
  */
 float DmImu::uint_to_float(int value, float min, float max, int bits)
 {
-  /* converts unsigned int to float, given range and number of bits */
+  /* 将整数按给定范围与位数映射回浮点数 */
   float span   = max - min;
   float offset = min;
   return ((float)value) * span / ((float)((1 << bits) - 1)) + offset;
@@ -312,7 +312,7 @@ void DmImu::update_euler(const uint8_t (&data)[8])
   euler[1] = static_cast<int16_t>((data[5] << 8) | data[4]);
   euler[2] = static_cast<int16_t>((data[7] << 8) | data[6]);
 
-  if (_data_mutex_handle != NULL)
+  if (_data_mutex_handle != nullptr)
   {
     xSemaphoreTake(_data_mutex_handle, portMAX_DELAY);
   }
@@ -322,7 +322,7 @@ void DmImu::update_euler(const uint8_t (&data)[8])
   _imu_data.roll  = uint_to_float(euler[2], ROLL_CAN_MIN, ROLL_CAN_MAX, 16);
 
   /* 退出临界区：释放互斥锁并恢复中断 */
-  if (_data_mutex_handle != NULL)
+  if (_data_mutex_handle != nullptr)
   {
     xSemaphoreGive(_data_mutex_handle);
   }
@@ -341,7 +341,7 @@ void DmImu::update_quaternion(const uint8_t (&data)[8])
   int y = (data[4] & 0x0F) << 10 | (data[5] << 2) | ((data[6] & 0xC0) >> 6);
   int z = (data[6] & 0x3F) << 8 | data[7];
 
-  if (_data_mutex_handle != NULL)
+  if (_data_mutex_handle != nullptr)
   {
     xSemaphoreTake(_data_mutex_handle, portMAX_DELAY);
   }
@@ -352,7 +352,7 @@ void DmImu::update_quaternion(const uint8_t (&data)[8])
   _imu_data.q[3] = uint_to_float(z, QUATERNION_MIN, QUATERNION_MAX, 14);
 
   /* 退出临界区：释放互斥锁并恢复中断 */
-  if (_data_mutex_handle != NULL)
+  if (_data_mutex_handle != nullptr)
   {
     xSemaphoreGive(_data_mutex_handle);
   }
@@ -363,6 +363,9 @@ void DmImu::update_quaternion(const uint8_t (&data)[8])
 /**
  * @brief CAN消息回调处理
  * @param rx_msg CAN接收消息
+ *
+ * @note 本函数只按 data[0] 判帧类型，不校验 CAN ID；
+ *       由上层分发（CAN 接收任务）先按帧 ID 过滤后调用。
  */
 void DmImu::on_can_message(const CanRxMsg& rx_msg)
 {

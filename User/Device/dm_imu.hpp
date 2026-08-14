@@ -114,8 +114,25 @@ struct ImuData
 class DmImu
 {
 public:
-  uint8_t _device_id; ///< 设备ID
-  uint8_t _master_id; ///< 主机ID
+  /* ==================== 公共接口 ==================== */
+
+  /**
+   * @brief 获取设备 ID
+   * @return uint8_t 设备 ID
+   */
+  uint8_t get_device_id() const
+  {
+    return _device_id;
+  }
+
+  /**
+   * @brief 获取主机 ID
+   * @return uint8_t 主机 ID
+   */
+  uint8_t get_master_id() const
+  {
+    return _master_id;
+  }
 
 
   /* ==================== 构造与析构 ==================== */
@@ -236,13 +253,6 @@ public:
   void request_quat();
 
   /**
-   * @brief 尝试接收数据
-   * @param timeout_ms 超时时间（毫秒）
-   * @return Status OK=成功接收到数据，TIMEOUT=超时
-   */
-  Status try_receive_data(uint32_t timeout_ms = 100);
-
-  /**
    * @brief 获取IMU数据（线程安全）
    * @return ImuData IMU数据
    */
@@ -308,7 +318,7 @@ private:
   /**
    * @brief 浮点数转整数
    */
-  int float_to_uint(float value, float min, float max, int bits);
+  int float_to_int(float value, float min, float max, int bits);
 
   /**
    * @brief 整数转浮点数
@@ -331,6 +341,8 @@ private:
 
   BspCan& _can_bus; ///< CAN总线接口引用
   ImuData _imu_data; ///< IMU数据
+  uint8_t  _device_id; ///< 设备ID
+  uint8_t  _master_id; ///< 主机ID
   char    _name[32]; ///< 互斥锁名字
 
   SemaphoreHandle_t _data_mutex_handle; ///< 用于保护_imu_data的互斥锁

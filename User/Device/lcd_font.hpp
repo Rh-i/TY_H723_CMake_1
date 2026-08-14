@@ -1,3 +1,15 @@
+/**
+ * @file lcd_font.hpp
+ * @author Rh
+ * @brief LCD 字库数据 —— ASCII 12/16/24/32 点阵（纯数据，无函数）
+ * @version 0.1
+ * @date 2026-08-13
+ *
+ * @copyright Copyright (c) 2026
+ *
+ * @details 字库收敛为 namespace lcd_font 内的纯数据，仅 lcd.cpp 使用。
+ */
+
 #ifndef __LCD_FONT_HPP__
 #define __LCD_FONT_HPP__
 
