@@ -67,8 +67,6 @@ void Error_Handler(void);
 #define GYRO_ACC_CS_GPIO_Port GPIOC
 #define GYRO_GYRO_CS_Pin GPIO_PIN_3
 #define GYRO_GYRO_CS_GPIO_Port GPIOC
-#define DCMI_PWDN_Pin GPIO_PIN_5
-#define DCMI_PWDN_GPIO_Port GPIOC
 #define GYRO_ACC_INT_Pin GPIO_PIN_10
 #define GYRO_ACC_INT_GPIO_Port GPIOE
 #define GYRO_ACC_INT_EXTI_IRQn EXTI15_10_IRQn

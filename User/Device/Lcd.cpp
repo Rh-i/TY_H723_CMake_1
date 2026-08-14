@@ -10,15 +10,10 @@
 static constexpr int k_use_horizontal = 1;
 
 
-/* ==================== 全局实例 ==================== */
-
-Lcd lcd;
-
-
 /* ==================== 底层读写 ==================== */
 
 /**
- * @brief 写 1 字节（硬件 SPI）
+ * @brief 写 1 字节（普通硬件 SPI，阻塞发送）
  */
 void Lcd::writ_bus(uint8_t dat)
 {

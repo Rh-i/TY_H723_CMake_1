@@ -4,9 +4,9 @@
 #include "task.h"
 #include "semphr.h"
 
-#include "api_main.h"  // menu_sem 声明
-#include "bsp_cfg.hpp" // bsp_buzzer
-#include "Lcd.hpp"     // LCD 驱动（纯 C++ 类，240x280 竖屏）
+#include "api_main.h"    // menu_sem 声明
+#include "bsp_cfg.hpp"    // bsp_buzzer
+#include "device_cfg.hpp" // lcd 全局实例（device_init 中已初始化）
 
 /* ==================================================================
  *  菜单项定义
@@ -68,9 +68,11 @@ static void menu_draw_all(void)
  *  对外接口
  * ================================================================== */
 
+/**
+ * @brief 初始化菜单：绘制首屏（LCD 硬件初始化在 device_init() 中完成）
+ */
 void menu_init(void)
 {
-  lcd.init();
   menu_draw_all();
 }
 

@@ -19,6 +19,7 @@
 #include "device_emmv5.hpp"
 #include "dm_imu.hpp"
 #include "JC2804.hpp"
+#include "Lcd.hpp"
 
 
 /* ==================== 函数声明 ==================== */
@@ -52,6 +53,9 @@ extern JC2804 motor_yaw;
 
 ///< DM IMU（CAN1）
 extern DmImu imu_bmi088;
+
+///< LCD（SPI1 DMA）
+extern Lcd lcd;
 
 
 #endif // __DEVICE_CFG_HPP__

@@ -57,7 +57,7 @@ void all_init()
   protocol_init();
 
   /* 菜单任务（LCD 菜单 + 按键，事件转发给 menu 模块；优先级最高） */
-  xTaskCreate(task_menu, "t_menu", 256, NULL, tskIDLE_PRIORITY + 6, NULL);
+  xTaskCreate(task_menu, "t_menu", 2048, NULL, tskIDLE_PRIORITY + 6, NULL);
 
   /* 菜单消息测试任务（3 个，各阻塞等待 menu_sem） */
   xTaskCreate(msg_task_task1, "m_tsk1", 256, NULL, tskIDLE_PRIORITY + 4, NULL);

@@ -4,6 +4,7 @@
 
 #include "api_main.h"  // IWYU pragma: keep
 #include "bsp_cfg.hpp" // key_user / bsp_uart1
+#include "device_cfg.hpp" // lcd
 #include "menu.hpp"    // 菜单模块接口
 
 /**
