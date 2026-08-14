@@ -1,6 +1,6 @@
 #include "protocol_uart.hpp"
 #include "bsp_cfg.hpp"
-#include "FreeRTOS.h"
+#include "FreeRTOS.h" // IWYU pragma: keep
 #include "task.h"
 #include "string.h"
 #include <stdio.h>
@@ -11,12 +11,12 @@
 
 /* ==================== 全局类对象实例化 ==================== */
 
-ProtocolUart protocal_usart_1(bsp_usart1, 1);
+ProtocolUart protocol_uart_1({bsp_uart1, 1});
 
 /* ==================== C函数实现 ==================== */
-static inline void protocol_usart_callback(ProtocolUart* p_usart)
+static inline void protocol_uart_callback(ProtocolUart* uart)
 {
-  if (p_usart == &protocal_usart_1)
+  if (uart == &protocol_uart_1)
   {
   }
 }
@@ -32,7 +32,7 @@ static inline void protocol_usart_callback(ProtocolUart* p_usart)
  *       3. 优化错误处理流程
  *       4. 增加超时保护
  */
-void _uart_protocol_task_entry(void* argument)
+void uart_protocol_task_entry(void* argument)
 {
   /* 通过argument获取类指针 */
   ProtocolUart* self = static_cast<ProtocolUart*>(argument);
@@ -48,13 +48,13 @@ void _uart_protocol_task_entry(void* argument)
   for (;;)
   {
     /* 1. 寻找帧头：先同步第一个包头 */
-    if (self->uart_instance.receive(&header_buf[0], 1, portMAX_DELAY) <= 0)
+    if (self->_uart_instance.receive(&header_buf[0], 1, nullptr, portMAX_DELAY) != Status::OK)
     {
       continue;
     }
 
     /* 非帧头1时，执行一次重同步：尝试读取下一个字节作为新的帧头1候选 */
-    if (header_buf[0] != self->header1)
+    if (header_buf[0] != self->_header1)
     {
       /* 不立即continue，而是继续在下一次循环中尝试 */
       /* 简单的流过滤：记录当前字节，若下一个是header1则匹配 */
@@ -62,13 +62,14 @@ void _uart_protocol_task_entry(void* argument)
     }
 
     /* 2. 读取剩余的帧头部分 */
-    if (self->uart_instance.receive(&header_buf[1], 3, 100) < 3)
+    size_t hdr_read = 0;
+    if (self->_uart_instance.receive(&header_buf[1], 3, &hdr_read, 100) != Status::OK || hdr_read < 3)
     {
       continue;
     }
 
     /* 校验第二个包头 - 必须匹配 */
-    if (header_buf[1] != self->header2)
+    if (header_buf[1] != self->_header2)
     {
       /* 帧头2不匹配，重置状态 */
       header_buf[0] = header_buf[1]; /* 保存第二个字节作为下次帧头1候选 */
@@ -76,19 +77,19 @@ void _uart_protocol_task_entry(void* argument)
     }
 
     /* 解析协议参数 */
-    self->rx_frame.cmd = header_buf[2];
-    self->rx_frame.len = header_buf[3];
+    self->_rx_frame.cmd = header_buf[2];
+    self->_rx_frame.len = header_buf[3];
 
     /* 3. 长度合法性检查 */
-    if (self->rx_frame.len > 64)
+    if (self->_rx_frame.len > 64)
     {
       continue;
     }
 
     /* 4. 批量读取后续内容 */
-    uint8_t remaining_len = self->rx_frame.len + 2;
-    int     recv_len      = self->uart_instance.receive(payload_buf, remaining_len, 100);
-    if (recv_len < remaining_len)
+    uint8_t remaining_len = self->_rx_frame.len + 2;
+    size_t  recv_len      = 0;
+    if (self->_uart_instance.receive(payload_buf, remaining_len, &recv_len, 100) != Status::OK || recv_len < remaining_len)
     {
       /* 数据接收不完整，跳过 */
       continue;
@@ -96,21 +97,21 @@ void _uart_protocol_task_entry(void* argument)
 
     /* 5. 校验和验证 - 直接计算，避免memcpy */
     checksum_calc = header_buf[0] + header_buf[1] + header_buf[2] + header_buf[3];
-    for (uint8_t i = 0; i < self->rx_frame.len; i++)
+    for (uint8_t i = 0; i < self->_rx_frame.len; i++)
     {
       checksum_calc += payload_buf[i];
     }
 
-    uint8_t received_sum  = payload_buf[self->rx_frame.len];
-    uint8_t received_tail = payload_buf[self->rx_frame.len + 1];
+    uint8_t received_sum  = payload_buf[self->_rx_frame.len];
+    uint8_t received_tail = payload_buf[self->_rx_frame.len + 1];
 
     /* 6. 最终判定与处理 */
-    if (checksum_calc == received_sum && received_tail == self->tail)
+    if (checksum_calc == received_sum && received_tail == self->_tail)
     {
       /* 拷贝数据到帧结构体 */
-      if (self->rx_frame.len > 0)
+      if (self->_rx_frame.len > 0)
       {
-        memcpy(self->rx_frame.data, payload_buf, self->rx_frame.len);
+        memcpy(self->_rx_frame.data, payload_buf, self->_rx_frame.len);
       }
       /* 处理业务逻辑 */
       self->protocol_handle_cmd();
@@ -126,35 +127,35 @@ void _uart_protocol_task_entry(void* argument)
  *
  * @attention 校验和计算：(header1+header2+CMD+LEN+DATA) & 0xFF
  *
- * @param uart_ptr 串口实例引用
- * @param name 实例名称编号
- * @param h1 帧头1
- * @param h2 帧头2
- * @param t 帧尾
+ * @param cfg 协议配置（串口实例/名称/帧头帧尾，可匿名按序传入）
  */
-ProtocolUart::ProtocolUart(BspUart<64, 8>& uart_ptr, uint8_t name, uint8_t h1, uint8_t h2, uint8_t t)
+ProtocolUart::ProtocolUart(const Config &cfg)
 
-  : uart_instance(uart_ptr),
-    header1(h1),
-    header2(h2),
-    tail(t)
+  : _uart_instance(cfg.uart),
+    _header1(cfg.h1),
+    _header2(cfg.h2),
+    _tail(cfg.t)
 {
-  /* 初始化任务属性成员变量 */
-  snprintf(task_name, sizeof(task_name), "uart_protocol_%d", name);
-  stack_size = 512 * 4; /* 从256*4增加到512*4 */
-  priority   = tskIDLE_PRIORITY + 1; /* 任务优先级，普通优先级 */
+  // 构造函数只做赋值；任务名生成等运行时逻辑推迟到 init()
+  _instance_name = cfg.name;
+  _stack_size    = 512 * 4; /* 从256*4增加到512*4 */
+  _priority      = tskIDLE_PRIORITY + 1; /* 任务优先级，普通优先级 */
 }
 
 
 /**
  * @brief 协议层初始化
  */
-void ProtocolUart::init()
+Status ProtocolUart::init()
 {
-  memset(&rx_frame, 0, sizeof(rx_frame));
+  /* 生成任务名（运行时逻辑） */
+  snprintf(_task_name, sizeof(_task_name), "uart_protocol_%d", _instance_name);
+
+  memset(&_rx_frame, 0, sizeof(_rx_frame));
 
   /* 创建串口协议处理任务，传入this指针 */
-  xTaskCreate(_uart_protocol_task_entry, task_name, stack_size / 4, this, priority, nullptr);
+  BaseType_t res = xTaskCreate(uart_protocol_task_entry, _task_name, _stack_size / 4, this, _priority, nullptr);
+  return (res == pdPASS) ? Status::OK : Status::IO_ERROR;
 }
 
 
@@ -168,11 +169,11 @@ uint8_t ProtocolUart::calculate_checksum(uint8_t* data, uint8_t len)
 {
   uint8_t sum = 0;
   /* 使用指针遍历，减少索引操作 */
-  uint8_t* p     = data;
-  uint8_t* p_end = data + len;
-  while (p < p_end)
+  uint8_t* ptr     = data;
+  uint8_t* ptr_end = data + len;
+  while (ptr < ptr_end)
   {
-    sum += *p++;
+    sum += *ptr++;
   }
   return sum;
 }
@@ -184,18 +185,18 @@ uint8_t ProtocolUart::calculate_checksum(uint8_t* data, uint8_t len)
  * @param data 数据指针
  * @param len 数据长度
  */
-void ProtocolUart::send(uint8_t cmd, uint8_t* data, uint8_t len)
+Status ProtocolUart::send(uint8_t cmd, uint8_t* data, uint8_t len)
 {
-  /* 注意：uart_instance 是引用类型，构造时已绑定，无需空检查 */
+  /* 注意：_uart_instance 是引用类型，构造时已绑定，无需空检查 */
   /* 有效性检查由调用者保证 */
   if (data == nullptr || len > 64)
   {
-    return;
+    return Status::BAD_ARG;
   }
 
   static uint8_t tx_buf[128];
-  tx_buf[0] = header1;
-  tx_buf[1] = header2;
+  tx_buf[0] = _header1;
+  tx_buf[1] = _header2;
   tx_buf[2] = cmd;
   tx_buf[3] = len;
   if (len > 0 && data != nullptr)
@@ -205,9 +206,9 @@ void ProtocolUart::send(uint8_t cmd, uint8_t* data, uint8_t len)
 
   /* 计算校验和 */
   tx_buf[4 + len] = calculate_checksum(tx_buf, 4 + len);
-  tx_buf[5 + len] = tail;
+  tx_buf[5 + len] = _tail;
 
-  uart_instance.send(tx_buf, 6 + len, 10);
+  return _uart_instance.send(tx_buf, 6 + len, nullptr, 10);
 }
 
 
@@ -217,5 +218,5 @@ void ProtocolUart::send(uint8_t cmd, uint8_t* data, uint8_t len)
 void ProtocolUart::protocol_handle_cmd()
 {
   /* 具体的指令码及数据解析 */
-  protocol_usart_callback(this);
+  protocol_uart_callback(this);
 }

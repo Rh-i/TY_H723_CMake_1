@@ -1,63 +1,23 @@
 #include "dm_imu.hpp"
-#include "FreeRTOS.h"
+#include "FreeRTOS.h" // IWYU pragma: keep
 #include "semphr.h"
 #include <stdio.h>
 #include <string.h>
-
-
-/* USER CODE BEGIN */
-
-/* ==================== 全局对象实例化 ==================== */
-
-DmImu imu_bmi088(bsp_can1, 0x58, 0x59);
-
-/* USER CODE END */
-
-
-/* ==================== 寄存器ID定义 ==================== */
-
-typedef enum RegId_e
-{
-  REBOOT_IMU = 0,        ///< 重启IMU
-  ACCEL_DATA,            ///< 加速度数据
-  GYRO_DATA,             ///< 陀螺仪数据
-  EULER_DATA,            ///< 欧拉角数据
-  QUAT_DATA,             ///< 四元数数据
-  SET_ZERO,              ///< 设置零点
-  ACCEL_CALI,            ///< 加速度计校准
-  GYRO_CALI,             ///< 陀螺仪校准
-  MAG_CALI,              ///< 磁力计校准
-  CHANGE_COM,            ///< 更改通信端口
-  SET_DELAY,             ///< 设置延时
-  CHANGE_ACTIVE,         ///< 更改激活状态
-  SET_BAUD,              ///< 设置波特率
-  SET_CAN_ID,            ///< 设置CAN ID
-  SET_MST_ID,            ///< 设置主ID
-  DATA_OUTPUT_SELECTION, ///< 数据输出选择
-  SAVE_PARAM      = 254, ///< 保存参数
-  RESTORE_SETTING = 255  ///< 恢复设置
-} RegId_e;
 
 
 /* ==================== 构造函数与析构函数 ==================== */
 
 /**
  * @brief 构造函数
- *
- * @param can_bus 使用的bsp_can地址
- * @param device_id 设备ID
- * @param master_id 主机ID
+ * @param cfg IMU 配置（CAN 接口/设备ID/主机ID，可匿名按序传入）
  */
-DmImu::DmImu(BspCan& can_bus, uint8_t device_id, uint8_t master_id)
+DmImu::DmImu(const Config &cfg)
 
-  : _device_id(device_id),
-    _master_id(master_id),
-    _can_bus(can_bus)
+  : _device_id(cfg.device_id),
+    _master_id(cfg.master_id),
+    _can_bus(cfg.can_bus)
 {
-  /* 初始化内部数据结构 */
-  memset(&_imu_data, 0, sizeof(_imu_data));
-  _imu_data.can_id = device_id;
-  _imu_data.mst_id = master_id;
+  // 构造函数只做赋值；数据区初始化推迟到 init()
 }
 
 
@@ -80,12 +40,19 @@ DmImu::~DmImu()
 /**
  * @brief 初始化IMU
  */
-void DmImu::init()
+Status DmImu::init()
 {
-  snprintf(name, sizeof(name), "IMU_Data_Mutex");
+  snprintf(_name, sizeof(_name), "IMU_Data_Mutex");
+
+  /* 初始化内部数据结构 */
+  memset(&_imu_data, 0, sizeof(_imu_data));
+  _imu_data.can_id = _device_id;
+  _imu_data.mst_id = _master_id;
 
   /* 创建互斥锁 */
   _data_mutex_handle = xSemaphoreCreateMutex();
+
+  return (_data_mutex_handle != nullptr) ? Status::OK : Status::IO_ERROR;
 }
 
 
@@ -94,9 +61,9 @@ void DmImu::init()
  * @param reg_id 寄存器ID
  * @param data 写入数据
  */
-void DmImu::write_register(uint8_t reg_id, uint32_t data)
+void DmImu::write_register(RegId reg_id, uint32_t data)
 {
-  uint8_t buf[8] = {0xCC, reg_id, CMD_WRITE, 0xDD, 0, 0, 0, 0};
+  uint8_t buf[8] = {0xCC, static_cast<uint8_t>(reg_id), CMD_WRITE, 0xDD, 0, 0, 0, 0};
   memcpy(buf + 4, &data, 4);
 
   _can_bus.send(_device_id, buf);
@@ -107,9 +74,9 @@ void DmImu::write_register(uint8_t reg_id, uint32_t data)
  * @brief 读寄存器
  * @param reg_id 寄存器ID
  */
-void DmImu::read_register(uint8_t reg_id)
+void DmImu::read_register(RegId reg_id)
 {
-  uint8_t buf[8] = {0xCC, reg_id, CMD_READ, 0xDD, 0, 0, 0, 0};
+  uint8_t buf[8] = {0xCC, static_cast<uint8_t>(reg_id), CMD_READ, 0xDD, 0, 0, 0, 0};
 
   _can_bus.send(_device_id, buf);
 }
@@ -120,7 +87,7 @@ void DmImu::read_register(uint8_t reg_id)
  */
 void DmImu::reboot()
 {
-  write_register(REBOOT_IMU, 0);
+  write_register(RegId::REBOOT_IMU, 0);
 }
 
 
@@ -129,7 +96,7 @@ void DmImu::reboot()
  */
 void DmImu::accel_calibration()
 {
-  write_register(ACCEL_CALI, 0);
+  write_register(RegId::ACCEL_CALI, 0);
 }
 
 
@@ -138,7 +105,7 @@ void DmImu::accel_calibration()
  */
 void DmImu::gyro_calibration()
 {
-  write_register(GYRO_CALI, 0);
+  write_register(RegId::GYRO_CALI, 0);
 }
 
 
@@ -146,9 +113,9 @@ void DmImu::gyro_calibration()
  * @brief 更改通信端口
  * @param port 通信端口
  */
-void DmImu::change_com_port(imu_com_port_e port)
+void DmImu::change_com_port(ImuComPort port)
 {
-  write_register(CHANGE_COM, static_cast<uint8_t>(port));
+  write_register(RegId::CHANGE_COM, static_cast<uint8_t>(port));
 }
 
 
@@ -158,7 +125,7 @@ void DmImu::change_com_port(imu_com_port_e port)
  */
 void DmImu::set_active_mode_delay(uint32_t delay)
 {
-  write_register(SET_DELAY, delay);
+  write_register(RegId::SET_DELAY, delay);
 }
 
 
@@ -167,7 +134,7 @@ void DmImu::set_active_mode_delay(uint32_t delay)
  */
 void DmImu::change_to_active()
 {
-  write_register(CHANGE_ACTIVE, 1);
+  write_register(RegId::CHANGE_ACTIVE, 1);
 }
 
 
@@ -176,7 +143,7 @@ void DmImu::change_to_active()
  */
 void DmImu::change_to_request()
 {
-  write_register(CHANGE_ACTIVE, 0);
+  write_register(RegId::CHANGE_ACTIVE, 0);
 }
 
 
@@ -184,9 +151,9 @@ void DmImu::change_to_request()
  * @brief 设置波特率
  * @param baud 波特率
  */
-void DmImu::set_baud(imu_baudrate_e baud)
+void DmImu::set_baud(ImuBaudrate baud)
 {
-  write_register(SET_BAUD, static_cast<uint8_t>(baud));
+  write_register(RegId::SET_BAUD, static_cast<uint8_t>(baud));
 }
 
 
@@ -196,7 +163,7 @@ void DmImu::set_baud(imu_baudrate_e baud)
  */
 void DmImu::set_can_id(uint8_t can_id)
 {
-  write_register(SET_CAN_ID, can_id);
+  write_register(RegId::SET_CAN_ID, can_id);
 }
 
 
@@ -206,7 +173,7 @@ void DmImu::set_can_id(uint8_t can_id)
  */
 void DmImu::set_mst_id(uint8_t mst_id)
 {
-  write_register(SET_MST_ID, mst_id);
+  write_register(RegId::SET_MST_ID, mst_id);
 }
 
 
@@ -215,7 +182,7 @@ void DmImu::set_mst_id(uint8_t mst_id)
  */
 void DmImu::save_parameters()
 {
-  write_register(SAVE_PARAM, 0);
+  write_register(RegId::SAVE_PARAM, 0);
 }
 
 
@@ -224,7 +191,7 @@ void DmImu::save_parameters()
  */
 void DmImu::restore_settings()
 {
-  write_register(RESTORE_SETTING, 0);
+  write_register(RegId::RESTORE_SETTING, 0);
 }
 
 
@@ -233,7 +200,7 @@ void DmImu::restore_settings()
  */
 void DmImu::request_euler()
 {
-  read_register(EULER_DATA);
+  read_register(RegId::EULER_DATA);
 }
 
 
@@ -242,17 +209,17 @@ void DmImu::request_euler()
  */
 void DmImu::request_quat()
 {
-  read_register(QUAT_DATA);
+  read_register(RegId::QUAT_DATA);
 }
 
 
 /**
  * @brief 获取IMU数据（线程安全）
- * @return imu_data IMU数据
+ * @return ImuData IMU数据
  */
-imu_data DmImu::get_imu_data()
+ImuData DmImu::get_imu_data()
 {
-  imu_data data_copy;
+  ImuData data_copy;
 
   if (_data_mutex_handle != NULL)
   {
@@ -276,7 +243,7 @@ imu_data DmImu::get_imu_data()
  * @brief 设置IMU数据（线程安全）
  * @param data IMU数据
  */
-void DmImu::set_imu_data(const imu_data& data)
+void DmImu::set_imu_data(const ImuData& data)
 {
   if (_data_mutex_handle != NULL)
   {
@@ -300,36 +267,36 @@ void DmImu::set_imu_data(const imu_data& data)
 /**
  * @brief 浮点数转整数
  *
- * @param x_float 浮点数值
- * @param x_min 最小值
- * @param x_max 最大值
+ * @param value 浮点数值
+ * @param min 最小值
+ * @param max 最大值
  * @param bits 位数
  * @return int 转换后的整数
  */
-int DmImu::float_to_uint(float x_float, float x_min, float x_max, int bits)
+int DmImu::float_to_uint(float value, float min, float max, int bits)
 {
   /* Converts a float to an unsigned int, given range and number of bits */
-  float span   = x_max - x_min;
-  float offset = x_min;
-  return (int)((x_float - offset) * ((float)((1 << bits) - 1)) / span);
+  float span   = max - min;
+  float offset = min;
+  return (int)((value - offset) * ((float)((1 << bits) - 1)) / span);
 }
 
 
 /**
  * @brief 整数转浮点数
  *
- * @param x_int 整数值
- * @param x_min 最小值
- * @param x_max 最大值
+ * @param value 整数值
+ * @param min 最小值
+ * @param max 最大值
  * @param bits 位数
  * @return float 转换后的浮点数
  */
-float DmImu::uint_to_float(int x_int, float x_min, float x_max, int bits)
+float DmImu::uint_to_float(int value, float min, float max, int bits)
 {
   /* converts unsigned int to float, given range and number of bits */
-  float span   = x_max - x_min;
-  float offset = x_min;
-  return ((float)x_int) * span / ((float)((1 << bits) - 1)) + offset;
+  float span   = max - min;
+  float offset = min;
+  return ((float)value) * span / ((float)((1 << bits) - 1)) + offset;
 }
 
 
@@ -379,10 +346,10 @@ void DmImu::update_quaternion(const uint8_t (&data)[8])
     xSemaphoreTake(_data_mutex_handle, portMAX_DELAY);
   }
 
-  _imu_data.q[0] = uint_to_float(w, Quaternion_MIN, Quaternion_MAX, 14);
-  _imu_data.q[1] = uint_to_float(x, Quaternion_MIN, Quaternion_MAX, 14);
-  _imu_data.q[2] = uint_to_float(y, Quaternion_MIN, Quaternion_MAX, 14);
-  _imu_data.q[3] = uint_to_float(z, Quaternion_MIN, Quaternion_MAX, 14);
+  _imu_data.q[0] = uint_to_float(w, QUATERNION_MIN, QUATERNION_MAX, 14);
+  _imu_data.q[1] = uint_to_float(x, QUATERNION_MIN, QUATERNION_MAX, 14);
+  _imu_data.q[2] = uint_to_float(y, QUATERNION_MIN, QUATERNION_MAX, 14);
+  _imu_data.q[3] = uint_to_float(z, QUATERNION_MIN, QUATERNION_MAX, 14);
 
   /* 退出临界区：释放互斥锁并恢复中断 */
   if (_data_mutex_handle != NULL)
@@ -397,7 +364,7 @@ void DmImu::update_quaternion(const uint8_t (&data)[8])
  * @brief CAN消息回调处理
  * @param rx_msg CAN接收消息
  */
-void DmImu::on_can_message(const CanRxMsg_t& rx_msg)
+void DmImu::on_can_message(const CanRxMsg& rx_msg)
 {
   if (rx_msg.data[0] == 0x03)
   {

@@ -1,22 +1,30 @@
 /**
  * @file api_main.h
  * @author Rh
- * @brief 应用层与STM32的接口，放置最直接运行的任务
+ * @brief 应用层与STM32和FreeRTOS底层的接口，放置最直接运行的任务
  * @version 0.1
  * @date 2026-01-20
  *
  * @note 各个外设的中断回调函数，放到了各个的BSP中实现，方便查找
- *       对于中断得到的数据，在这里创建任务等待消息队列+处理即可
  *
  * @copyright Copyright (c) 2026
  *
  * @details 使用说明：
- *          - all_init()：在FreeRTOS初始化阶段(MX_FREERTOS_Init)中调用，用于初始化外设
+ *          - all_init()：在FreeRTOS初始化阶段(MX_FREERTOS_Init)中调用，用于初始化外设和创建任务
  *          - StartDefaultTask()：默认任务，创建各业务任务并循环运行
+ *          - 业务任务声明见 app_task.hpp，测试任务声明见 app_test.hpp
  */
 
 #ifndef __API_MAIN_H__
 #define __API_MAIN_H__
+
+#include "FreeRTOS.h" // IWYU pragma: keep
+#include "semphr.h"
+
+
+///< 菜单信号量数组（3 个，menu 模块长按触发，msg_task 测试任务消费）
+extern SemaphoreHandle_t menu_sem[3];
+
 
 #ifdef __cplusplus
 extern "C"
@@ -39,24 +47,10 @@ extern "C"
    */
   void StartDefaultTask(void *argument);
 
-  /**
-   * @brief CAN接收后处理任务
-   * @param argument 任务参数
-   */
-  void _can_rx_handler_task(void *argument);
-
-  /**
-   * @brief USB接收后处理任务
-   *
-   * @param argument 任务参数
-   */
-  void _usb_rx_handler_task(void *argument);
-
-  void _usb_tx_handler_task(void *argument);
-
 
 #ifdef __cplusplus
 }
 #endif
+
 
 #endif // __API_MAIN_H__

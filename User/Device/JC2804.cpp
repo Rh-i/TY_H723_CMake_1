@@ -1,16 +1,6 @@
 #include "JC2804.hpp"
 
 
-/* USER CODE BEGIN */
-
-/* ==================== 全局类成员实例化 ==================== */
-
-JC2804 motor_yaw(bsp_can1, 2);
-JC2804 motor_pitch(bsp_can1, 1);
-
-/* USER CODE END */
-
-
 /* ==================== 静态成员赋值 ==================== */
 
 const float JC2804::VOLTAGE_SCALE     = 0.1f;
@@ -24,14 +14,13 @@ const float JC2804::TEMPERATURE_SCALE = 0.1f;
 
 /**
  * @brief 构造函数
- * @param can_interface CAN接口引用
- * @param device_id 设备ID
+ * @param cfg 电机配置（CAN 接口 + 设备ID，可匿名按序传入）
  */
-JC2804::JC2804(BspCan& can_interface, uint8_t device_id)
+JC2804::JC2804(const Config &cfg)
 
-  : _device_id(device_id),
-    _last_request_type(NONE_REQUEST),
-    _can(can_interface)
+  : _device_id(cfg.device_id),
+    _last_request_type(RequestType::NONE_REQUEST),
+    _can(cfg.can)
 {
 }
 
@@ -48,11 +37,9 @@ JC2804::~JC2804()
 
 /**
  * @brief 异步发送命令
- * @param cmd 命令字节
- * @param data 数据指针
- * @param len 数据长度
+ * @param data 数据指针（data[0]为命令字）
  */
-void JC2804::send_async_command(uint8_t cmd, const uint8_t* data, uint8_t len)
+void JC2804::send_async_command(const uint8_t* data)
 {
   uint32_t tx_id = 0x600 | _device_id; // 标准帧ID格式：0x600 + DeviceID
   _can.send(tx_id, const_cast<uint8_t*>(data));
@@ -75,7 +62,7 @@ void JC2804::send_read_request(uint8_t cmd, uint16_t reg_addr, RequestType req_t
   /* 记录本次请求类型，以便响应时能正确解析 */
   _last_request_type = req_type;
 
-  send_async_command(cmd, data, 8);
+  send_async_command(data);
 }
 
 
@@ -99,7 +86,7 @@ void JC2804::set_torque(float torque)
     0x00,
     0x00 // Padding
   };
-  send_async_command(0x2B, data, 8);
+  send_async_command(data);
 }
 
 
@@ -120,7 +107,7 @@ void JC2804::set_speed(float speed)
     static_cast<uint8_t>(spd_raw >> 16),
     static_cast<uint8_t>(spd_raw >> 8),
     static_cast<uint8_t>(spd_raw & 0xFF)};
-  send_async_command(0x23, data, 8);
+  send_async_command(data);
 }
 
 
@@ -141,7 +128,7 @@ void JC2804::set_absolute_position(float position)
     static_cast<uint8_t>(pos_raw >> 16),
     static_cast<uint8_t>(pos_raw >> 8),
     static_cast<uint8_t>(pos_raw & 0xFF)};
-  send_async_command(0x23, data, 8);
+  send_async_command(data);
 }
 
 
@@ -162,7 +149,7 @@ void JC2804::set_relative_position(float position)
     static_cast<uint8_t>(pos_raw >> 16),
     static_cast<uint8_t>(pos_raw >> 8),
     static_cast<uint8_t>(pos_raw & 0xFF)};
-  send_async_command(0x23, data, 8);
+  send_async_command(data);
 }
 
 
@@ -184,7 +171,7 @@ void JC2804::set_low_speed(float speed)
     0x00,
     0x00 // Padding
   };
-  send_async_command(0x2B, data, 8);
+  send_async_command(data);
 }
 
 
@@ -208,7 +195,7 @@ void JC2804::pv_command(int32_t position, float speed)
     static_cast<uint8_t>(spd_raw & 0xFF),
     0x00 // Padding
   };
-  send_async_command(0x24, data, 8);
+  send_async_command(data);
 }
 
 
@@ -234,7 +221,7 @@ void JC2804::pvt_command(int32_t position, float speed, float torque_percent)
     static_cast<uint8_t>(spd_raw & 0xFF),
     torque_raw // Torque Percentage
   };
-  send_async_command(0x25, data, 8);
+  send_async_command(data);
 }
 
 
@@ -254,7 +241,7 @@ void JC2804::set_control_mode(uint8_t mode)
     mode, // Mode Value (0-5)
     0x00,
     0x00};
-  send_async_command(0x2B, data, 8);
+  send_async_command(data);
 }
 
 
@@ -266,7 +253,7 @@ void JC2804::set_control_mode(uint8_t mode)
 void JC2804::idle()
 {
   uint8_t data[8] = {0x2B, 0x00, 0xA0, 0x00, 0x00, 0x01, 0x00, 0x00};
-  send_async_command(0x2B, data, 8);
+  send_async_command(data);
 }
 
 
@@ -276,7 +263,7 @@ void JC2804::idle()
 void JC2804::enter_closed_loop()
 {
   uint8_t data[8] = {0x2B, 0x00, 0xA2, 0x00, 0x00, 0x01, 0x00, 0x00};
-  send_async_command(0x2B, data, 8);
+  send_async_command(data);
 }
 
 
@@ -286,7 +273,7 @@ void JC2804::enter_closed_loop()
 void JC2804::erase()
 {
   uint8_t data[8] = {0x2B, 0x00, 0xA3, 0x00, 0x00, 0x01, 0x00, 0x00};
-  send_async_command(0x2B, data, 8);
+  send_async_command(data);
 }
 
 
@@ -296,7 +283,7 @@ void JC2804::erase()
 void JC2804::save()
 {
   uint8_t data[8] = {0x2B, 0x00, 0xA4, 0x00, 0x00, 0x01, 0x00, 0x00};
-  send_async_command(0x2B, data, 8);
+  send_async_command(data);
 }
 
 
@@ -306,7 +293,7 @@ void JC2804::save()
 void JC2804::restart()
 {
   uint8_t data[8] = {0x2B, 0x00, 0xA5, 0x00, 0x00, 0x01, 0x00, 0x00};
-  send_async_command(0x2B, data, 8);
+  send_async_command(data);
 }
 
 
@@ -316,7 +303,7 @@ void JC2804::restart()
 void JC2804::set_origin()
 {
   uint8_t data[8] = {0x2B, 0x00, 0xA6, 0x00, 0x00, 0x01, 0x00, 0x00};
-  send_async_command(0x2B, data, 8);
+  send_async_command(data);
 }
 
 
@@ -326,7 +313,7 @@ void JC2804::set_origin()
 void JC2804::set_temporary_origin()
 {
   uint8_t data[8] = {0x2B, 0x00, 0xA7, 0x00, 0x00, 0x01, 0x00, 0x00};
-  send_async_command(0x2B, data, 8);
+  send_async_command(data);
 }
 
 
@@ -337,7 +324,7 @@ void JC2804::set_temporary_origin()
  */
 void JC2804::request_power_voltage()
 {
-  send_read_request(0x4B, 0x0004, VOLTAGE_REQUEST);
+  send_read_request(0x4B, 0x0004, RequestType::VOLTAGE_REQUEST);
 }
 
 
@@ -346,7 +333,7 @@ void JC2804::request_power_voltage()
  */
 void JC2804::request_bus_current()
 {
-  send_read_request(0x4B, 0x0005, CURRENT_REQUEST);
+  send_read_request(0x4B, 0x0005, RequestType::CURRENT_REQUEST);
 }
 
 
@@ -355,7 +342,7 @@ void JC2804::request_bus_current()
  */
 void JC2804::request_real_time_speed()
 {
-  send_read_request(0x43, 0x0006, SPEED_REQUEST);
+  send_read_request(0x43, 0x0006, RequestType::SPEED_REQUEST);
 }
 
 
@@ -364,7 +351,7 @@ void JC2804::request_real_time_speed()
  */
 void JC2804::request_real_time_position()
 {
-  send_read_request(0x43, 0x0008, POSITION_REQUEST);
+  send_read_request(0x43, 0x0008, RequestType::POSITION_REQUEST);
 }
 
 
@@ -373,7 +360,7 @@ void JC2804::request_real_time_position()
  */
 void JC2804::request_driver_temperature()
 {
-  send_read_request(0x4B, 0x000A, DRIVER_TEMP_REQUEST);
+  send_read_request(0x4B, 0x000A, RequestType::DRIVER_TEMP_REQUEST);
 }
 
 
@@ -382,7 +369,7 @@ void JC2804::request_driver_temperature()
  */
 void JC2804::request_motor_temperature()
 {
-  send_read_request(0x4B, 0x000B, MOTOR_TEMP_REQUEST);
+  send_read_request(0x4B, 0x000B, RequestType::MOTOR_TEMP_REQUEST);
 }
 
 
@@ -391,7 +378,7 @@ void JC2804::request_motor_temperature()
  */
 void JC2804::request_error_info()
 {
-  send_read_request(0x43, 0x000C, ERROR_INFO_REQUEST);
+  send_read_request(0x43, 0x000C, RequestType::ERROR_INFO_REQUEST);
 }
 
 
@@ -406,72 +393,72 @@ void JC2804::store_received_data(const uint8_t (&data)[8])
   /* 根据_last_request_type解析数据 */
   switch (_last_request_type)
   {
-    case VOLTAGE_REQUEST:
+    case RequestType::VOLTAGE_REQUEST:
       if (data[0] == 0x4B)
       {
-        uint16_t raw        = (static_cast<uint16_t>(data[4]) << 8) | data[5];
-        latest_data.voltage = raw * VOLTAGE_SCALE;
-        _last_request_type  = NONE_REQUEST; // 清除请求类型
+        uint16_t raw          = (static_cast<uint16_t>(data[4]) << 8) | data[5];
+        _latest_data.voltage = raw * VOLTAGE_SCALE;
+        _last_request_type    = RequestType::NONE_REQUEST; // 清除请求类型
       }
       break;
 
-    case CURRENT_REQUEST:
+    case RequestType::CURRENT_REQUEST:
       if (data[0] == 0x4B)
       {
-        uint16_t raw        = (static_cast<uint16_t>(data[4]) << 8) | data[5];
-        latest_data.current = raw * CURRENT_SCALE;
-        _last_request_type  = NONE_REQUEST;
+        uint16_t raw          = (static_cast<uint16_t>(data[4]) << 8) | data[5];
+        _latest_data.current = raw * CURRENT_SCALE;
+        _last_request_type    = RequestType::NONE_REQUEST;
       }
       break;
 
-    case SPEED_REQUEST:
-      if (data[0] == 0x43)
-      {
-        int32_t raw        = (static_cast<int32_t>(data[4]) << 24) | (static_cast<int32_t>(data[5]) << 16) | (static_cast<int32_t>(data[6]) << 8) | (static_cast<int32_t>(data[7]));
-        latest_data.speed  = static_cast<float>(raw) * SPEED_SCALE;
-        _last_request_type = NONE_REQUEST;
-      }
-      break;
-
-    case POSITION_REQUEST:
+    case RequestType::SPEED_REQUEST:
       if (data[0] == 0x43)
       {
         int32_t raw          = (static_cast<int32_t>(data[4]) << 24) | (static_cast<int32_t>(data[5]) << 16) | (static_cast<int32_t>(data[6]) << 8) | (static_cast<int32_t>(data[7]));
-        latest_data.position = static_cast<float>(raw) * POSITION_SCALE;
-        _last_request_type   = NONE_REQUEST;
+        _latest_data.speed  = static_cast<float>(raw) * SPEED_SCALE;
+        _last_request_type = RequestType::NONE_REQUEST;
       }
       break;
 
-    case DRIVER_TEMP_REQUEST:
-      if (data[0] == 0x4B)
-      {
-        uint16_t raw            = (static_cast<uint16_t>(data[4]) << 8) | data[5];
-        latest_data.driver_temp = raw * TEMPERATURE_SCALE;
-        _last_request_type      = NONE_REQUEST;
-      }
-      break;
-
-    case MOTOR_TEMP_REQUEST:
-      if (data[0] == 0x4B)
-      {
-        uint16_t raw           = (static_cast<uint16_t>(data[4]) << 8) | data[5];
-        latest_data.motor_temp = raw * TEMPERATURE_SCALE;
-        _last_request_type     = NONE_REQUEST;
-      }
-      break;
-
-    case ERROR_INFO_REQUEST:
+    case RequestType::POSITION_REQUEST:
       if (data[0] == 0x43)
       {
-        uint32_t raw           = (static_cast<uint32_t>(data[4]) << 24) | (static_cast<uint32_t>(data[5]) << 16) | (static_cast<uint32_t>(data[6]) << 8) | (static_cast<uint32_t>(data[7]));
-        latest_data.error_info = raw;
-        _last_request_type     = NONE_REQUEST;
+        int32_t raw            = (static_cast<int32_t>(data[4]) << 24) | (static_cast<int32_t>(data[5]) << 16) | (static_cast<int32_t>(data[6]) << 8) | (static_cast<int32_t>(data[7]));
+        _latest_data.position = static_cast<float>(raw) * POSITION_SCALE;
+        _last_request_type     = RequestType::NONE_REQUEST;
+      }
+      break;
+
+    case RequestType::DRIVER_TEMP_REQUEST:
+      if (data[0] == 0x4B)
+      {
+        uint16_t raw              = (static_cast<uint16_t>(data[4]) << 8) | data[5];
+        _latest_data.driver_temp = raw * TEMPERATURE_SCALE;
+        _last_request_type        = RequestType::NONE_REQUEST;
+      }
+      break;
+
+    case RequestType::MOTOR_TEMP_REQUEST:
+      if (data[0] == 0x4B)
+      {
+        uint16_t raw             = (static_cast<uint16_t>(data[4]) << 8) | data[5];
+        _latest_data.motor_temp = raw * TEMPERATURE_SCALE;
+        _last_request_type       = RequestType::NONE_REQUEST;
+      }
+      break;
+
+    case RequestType::ERROR_INFO_REQUEST:
+      if (data[0] == 0x43)
+      {
+        uint32_t raw             = (static_cast<uint32_t>(data[4]) << 24) | (static_cast<uint32_t>(data[5]) << 16) | (static_cast<uint32_t>(data[6]) << 8) | (static_cast<uint32_t>(data[7]));
+        _latest_data.error_info = raw;
+        _last_request_type       = RequestType::NONE_REQUEST;
       }
       break;
 
     default:
       /* 如果没有匹配的请求类型，则清零 */
-      _last_request_type = NONE_REQUEST;
+      _last_request_type = RequestType::NONE_REQUEST;
       break;
   }
 }
@@ -483,7 +470,7 @@ void JC2804::store_received_data(const uint8_t (&data)[8])
  * @param rx_msg 接收消息引用
  * @return 验证结果
  */
-bool JC2804::validate_response(uint8_t expected_cmd, const CanRxMsg_t& rx_msg)
+bool JC2804::validate_response(uint8_t expected_cmd, const CanRxMsg& rx_msg)
 {
   (void)expected_cmd; // 未使用参数
 
@@ -503,7 +490,7 @@ bool JC2804::validate_response(uint8_t expected_cmd, const CanRxMsg_t& rx_msg)
  * @brief CAN消息回调处理
  * @param rx_msg CAN接收消息
  */
-void JC2804::on_can_message(const CanRxMsg_t& rx_msg)
+void JC2804::on_can_message(const CanRxMsg& rx_msg)
 {
   /* 验证消息ID是否属于本设备 */
   if (!validate_response(0, rx_msg))
@@ -514,7 +501,7 @@ void JC2804::on_can_message(const CanRxMsg_t& rx_msg)
   uint8_t received_cmd = rx_msg.data[0];
 
   /* 检查是否是读取响应，并且我们之前确实发送了读取请求 */
-  if (((received_cmd == 0x4B || received_cmd == 0x43) && _last_request_type != NONE_REQUEST))
+  if (((received_cmd == 0x4B || received_cmd == 0x43) && _last_request_type != RequestType::NONE_REQUEST))
   {
     /* 尝试解析响应数据 */
     store_received_data(rx_msg.data);
@@ -528,6 +515,6 @@ void JC2804::on_can_message(const CanRxMsg_t& rx_msg)
  */
 MotorData JC2804::get_latest_data_struct()
 {
-  MotorData data_copy = latest_data;
+  MotorData data_copy = _latest_data;
   return data_copy;
 }

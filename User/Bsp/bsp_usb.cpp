@@ -49,7 +49,7 @@ void BspUsb::init()
 void BspUsb::task()
 {
   tud_task();
-  process_rx_();
+  process_rx();
 }
 
 /**
@@ -63,7 +63,7 @@ bool BspUsb::is_ready() const
     return false;
   }
 
-  if (require_dtr_)
+  if (_require_dtr)
   {
     return tud_cdc_connected();
   }
@@ -77,7 +77,7 @@ bool BspUsb::is_ready() const
  */
 void BspUsb::set_require_dtr(bool enable)
 {
-  require_dtr_ = enable;
+  _require_dtr = enable;
 }
 
 /**
@@ -154,16 +154,16 @@ uint32_t BspUsb::cdc_available() const
  */
 void BspUsb::set_rx_callback(RxCallback cb, void* user_ctx)
 {
-  rx_callback_ = cb;
-  rx_user_ctx_ = user_ctx;
+  _rx_callback = cb;
+  _rx_user_ctx = user_ctx;
 }
 
 /**
  * @brief 轮询 CDC 接收并分发回调。
  */
-void BspUsb::process_rx_()
+void BspUsb::process_rx()
 {
-  if ((rx_callback_ == nullptr) || !mounted())
+  if ((_rx_callback == nullptr) || !mounted())
   {
     return;
   }
@@ -178,7 +178,7 @@ void BspUsb::process_rx_()
       break;
     }
 
-    rx_callback_(rx_buf, read_len, rx_user_ctx_);
+    _rx_callback(rx_buf, read_len, _rx_user_ctx);
   }
 }
 

@@ -37,6 +37,7 @@ root
 │  ├─Inc            |STM32的HAL层头文件
 │  └─Src            |STM32的HAL层源文件
 ├─docs              |文档与图片
+│  ├─编码规范.md
 │  ├─分层规划图.png
 │  └─CtrBoard-H7管脚标注图.pdf
 ├─Drivers           |STM32的Driver层文件
@@ -46,26 +47,42 @@ root
 └─User              |---
     ├─CMakeLists.txt  |User库一键导入配置
     ├─Bsp             |板载支持驱动
+    │  ├─bsp_buzzer.cpp / hpp
     │  ├─bsp_can.cpp / hpp
     │  ├─bsp_cfg.cpp / hpp
-    │  ├─bsp_gpio_exti.cpp / hpp
+    │  ├─bsp_gpio.hpp
+    │  ├─bsp_key.cpp / hpp
     │  ├─bsp_uart.cpp / hpp
     │  ├─bsp_usb.cpp / hpp
     │  └─tusb_config.h
     ├─Device          |设备层
+    │  ├─device_cfg.cpp / hpp
+    │  ├─device_emmv5.cpp / hpp
     │  ├─dm_imu.cpp / hpp
-    │  └─JC2804.cpp / hpp
-    ├─Module          |模块层（ 多个设备组合 ）（规划中）
+    │  ├─emm_frame.hpp
+    │  ├─JC2804.cpp / hpp
+    │  ├─Lcd.cpp / hpp
+    │  └─LcdFont.hpp
+    ├─Module          |模块层（ 多个设备组合 ）
+    │  └─menu.cpp / hpp
     ├─Protocol        |协议层
     │  ├─data_pack.cpp / hpp
+    │  ├─protocol_cfg.cpp / hpp
     │  └─protocol_uart.cpp / hpp
+    ├─Service         |服务层（ 状态码 / 类型工具 ）
+    │  ├─status.hpp
+    │  └─uart_type_list.hpp
     ├─Algorithm       |算法层
     │  ├─pid.cpp
     │  └─pid.hpp
-    ├─Service         |服务层（规划中）
     └─App             |应用层 / c cpp混编接口层
-        ├─api_main.cpp
-        └─api_main.h
+        ├─api_main.cpp / h
+        ├─app_task.hpp
+        ├─app_test.hpp
+        ├─task/       |业务任务（除默认任务外）
+        │  └─task_menu.cpp
+        └─test/       |测试任务
+            └─msg_task.cpp
 
 ```
 我认为：ST官方生成的属于BSP的一部分 以及 Service的一部分

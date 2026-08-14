@@ -38,6 +38,7 @@
         * Output
         * EVENT_OUT
         * EXTI
+     PA7   ------> S_TIM14_CH1
      PD2   ------> UART5_RX
 */
 void MX_GPIO_Init(void)
@@ -79,6 +80,14 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PA7 */
+  GPIO_InitStruct.Pin = GPIO_PIN_7;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.Alternate = GPIO_AF9_TIM14;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : GYRO_ACC_INT_Pin GYRO_GYRO_INT_Pin */
   GPIO_InitStruct.Pin = GYRO_ACC_INT_Pin|GYRO_GYRO_INT_Pin;

@@ -5,12 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-/**
- * @file data_pack.cpp
- * @brief data_pack 的打包、解包与 USB 传输实现。
- */
-
-data_format data_pack::data_format_ = DATA_FORMAT_HEX;
+DataFormat DataPack::_data_format = DataFormat::HEX;
 
 namespace
 {
@@ -63,35 +58,35 @@ osStatus_t extract_value(const uint8_t* buffer, uint32_t length, uint32_t* offse
 }
 } // namespace
 
-data_pack::data_pack(uint8_t header, data_format data_format) :
-  data_length(0),
-  header(header),
-  data_source_length(0),
-  data_pack_source_length(0)
+DataPack::DataPack(const Config &cfg) :
+  _data(), // 构造函数只做赋值：数组清零
+  _data_length(1), // 帧头占 1 字节
+  _header(cfg.header),
+  _data_source_length(0),
+  _data_pack_source_length(0)
 {
-  this->data_format_ = data_format;
-  clear_data();
-  data[data_length++] = header;
+  _data_format = cfg.format; // 静态成员赋值
+  _data[0]     = cfg.header;
 }
 
 /**
  * @brief 析构函数。
  */
-data_pack::~data_pack()
+DataPack::~DataPack()
 {
   clear_data();
-  data_source_length      = 0;
-  data_pack_source_length = 0;
+  _data_source_length      = 0;
+  _data_pack_source_length = 0;
 }
 
 /**
  * @brief 清空内部缓存数据。
  */
-void data_pack::clear_data()
+void DataPack::clear_data()
 {
-  memset(data, 0, sizeof(data));
-  data_length         = 0;
-  data[data_length++] = header;
+  memset(_data, 0, sizeof(_data));
+  _data_length         = 0;
+  _data[_data_length++] = _header;
 }
 
 /**
@@ -100,44 +95,44 @@ void data_pack::clear_data()
  * @param type 变量类型。
  * @return osStatus_t 添加结果。
  */
-osStatus_t data_pack::link_data_entry_(void* addr, var_type type)
+osStatus_t DataPack::link_data_entry(void* addr, VarType type)
 {
   if (addr == nullptr)
   {
     return osErrorParameter;
   }
 
-  if (data_source_length >= DATA_PACK_MAX_LENGTH)
+  if (_data_source_length >= DATA_PACK_MAX_LENGTH)
   {
     return osErrorResource;
   }
 
-  this->data_source[data_source_length++] = {addr, type};
+  this->_data_source[_data_source_length++] = {addr, type};
   return osOK;
 }
 
 #define DATA_PACK_LINK_IMPL(_ctype, _vartype)          \
-  osStatus_t data_pack::link_data(_ctype* data_source) \
+  osStatus_t DataPack::link_data(_ctype* data_source)  \
   {                                                    \
-    return link_data_entry_(data_source, _vartype);    \
+    return link_data_entry(data_source, _vartype);     \
   }
 
-DATA_PACK_LINK_IMPL(uint8_t, VAR_TYPE_UINT8)
-DATA_PACK_LINK_IMPL(uint16_t, VAR_TYPE_UINT16)
-DATA_PACK_LINK_IMPL(uint32_t, VAR_TYPE_UINT32)
-DATA_PACK_LINK_IMPL(uint64_t, VAR_TYPE_UINT64)
-DATA_PACK_LINK_IMPL(int8_t, VAR_TYPE_INT8)
-DATA_PACK_LINK_IMPL(int16_t, VAR_TYPE_INT16)
-DATA_PACK_LINK_IMPL(int32_t, VAR_TYPE_INT32)
-DATA_PACK_LINK_IMPL(int64_t, VAR_TYPE_INT64)
-DATA_PACK_LINK_IMPL(float, VAR_TYPE_FLOAT)
-DATA_PACK_LINK_IMPL(double, VAR_TYPE_DOUBLE)
+DATA_PACK_LINK_IMPL(uint8_t, VarType::UINT8)
+DATA_PACK_LINK_IMPL(uint16_t, VarType::UINT16)
+DATA_PACK_LINK_IMPL(uint32_t, VarType::UINT32)
+DATA_PACK_LINK_IMPL(uint64_t, VarType::UINT64)
+DATA_PACK_LINK_IMPL(int8_t, VarType::INT8)
+DATA_PACK_LINK_IMPL(int16_t, VarType::INT16)
+DATA_PACK_LINK_IMPL(int32_t, VarType::INT32)
+DATA_PACK_LINK_IMPL(int64_t, VarType::INT64)
+DATA_PACK_LINK_IMPL(float, VarType::FLOAT)
+DATA_PACK_LINK_IMPL(double, VarType::DOUBLE)
 
 #undef DATA_PACK_LINK_IMPL
 
-osStatus_t data_pack::link_data(const char* str)
+osStatus_t DataPack::link_data(const char* str)
 {
-  return link_data_entry_(const_cast<char*>(str), VAR_TYPE_STRING);
+  return link_data_entry(const_cast<char*>(str), VarType::STRING);
 }
 
 /**
@@ -145,28 +140,28 @@ osStatus_t data_pack::link_data(const char* str)
  * @param pack_source 源数据包。
  * @return osStatus_t 关联结果。
  */
-osStatus_t data_pack::link_data_pack(data_pack* pack_source)
+osStatus_t DataPack::link_data_pack(DataPack* pack_source)
 {
   if (pack_source == nullptr)
   {
     return osErrorParameter;
   }
 
-  if (data_pack_source_length >= DATA_PACK_MAX_LENGTH)
+  if (_data_pack_source_length >= DATA_PACK_MAX_LENGTH)
   {
     return osErrorResource;
   }
 
-  if ((data_source_length + pack_source->data_source_length) > DATA_PACK_MAX_LENGTH)
+  if ((_data_source_length + pack_source->_data_source_length) > DATA_PACK_MAX_LENGTH)
   {
     return osErrorResource;
   }
 
-  data_pack_source[data_pack_source_length++] = pack_source;
+  _data_pack_source[_data_pack_source_length++] = pack_source;
 
-  for (uint32_t i = 0; i < pack_source->data_source_length; ++i)
+  for (uint32_t i = 0; i < pack_source->_data_source_length; ++i)
   {
-    data_source[data_source_length++] = pack_source->data_source[i];
+    _data_source[_data_source_length++] = pack_source->_data_source[i];
   }
 
   return osOK;
@@ -176,53 +171,53 @@ osStatus_t data_pack::link_data_pack(data_pack* pack_source)
  * @brief 从绑定变量打包到内部缓存。
  * @return osStatus_t 打包结果。
  */
-osStatus_t data_pack::get_data()
+osStatus_t DataPack::get_data()
 {
   clear_data();
 
-  for (uint32_t i = 0; i < data_source_length; ++i)
+  for (uint32_t i = 0; i < _data_source_length; ++i)
   {
-    const var_entry& entry  = data_source[i];
-    osStatus_t       status = osError;
+    const VarEntry& entry = _data_source[i];
+    osStatus_t      status = osError;
 
-    if (data_format_ == DATA_FORMAT_STR)
+    if (_data_format == DataFormat::STR)
     {
       char token[64];
       token[0] = '\0';
 
       switch (entry.type)
       {
-        case VAR_TYPE_UINT8:
+        case VarType::UINT8:
           (void)snprintf(token, sizeof(token), "%u", static_cast<unsigned>(*static_cast<uint8_t*>(entry.addr)));
           break;
-        case VAR_TYPE_UINT16:
+        case VarType::UINT16:
           (void)snprintf(token, sizeof(token), "%u", static_cast<unsigned>(*static_cast<uint16_t*>(entry.addr)));
           break;
-        case VAR_TYPE_UINT32:
+        case VarType::UINT32:
           (void)snprintf(token, sizeof(token), "%lu", static_cast<unsigned long>(*static_cast<uint32_t*>(entry.addr)));
           break;
-        case VAR_TYPE_UINT64:
+        case VarType::UINT64:
           (void)snprintf(token, sizeof(token), "%llu", static_cast<unsigned long long>(*static_cast<uint64_t*>(entry.addr)));
           break;
-        case VAR_TYPE_INT8:
+        case VarType::INT8:
           (void)snprintf(token, sizeof(token), "%d", static_cast<int>(*static_cast<int8_t*>(entry.addr)));
           break;
-        case VAR_TYPE_INT16:
+        case VarType::INT16:
           (void)snprintf(token, sizeof(token), "%d", static_cast<int>(*static_cast<int16_t*>(entry.addr)));
           break;
-        case VAR_TYPE_INT32:
+        case VarType::INT32:
           (void)snprintf(token, sizeof(token), "%ld", static_cast<long>(*static_cast<int32_t*>(entry.addr)));
           break;
-        case VAR_TYPE_INT64:
+        case VarType::INT64:
           (void)snprintf(token, sizeof(token), "%lld", static_cast<long long>(*static_cast<int64_t*>(entry.addr)));
           break;
-        case VAR_TYPE_FLOAT:
+        case VarType::FLOAT:
           (void)snprintf(token, sizeof(token), "%.6g", static_cast<double>(*static_cast<float*>(entry.addr)));
           break;
-        case VAR_TYPE_DOUBLE:
+        case VarType::DOUBLE:
           (void)snprintf(token, sizeof(token), "%.12g", *static_cast<double*>(entry.addr));
           break;
-        case VAR_TYPE_STRING:
+        case VarType::STRING:
         {
           if (entry.addr == nullptr)
           {
@@ -230,15 +225,15 @@ osStatus_t data_pack::get_data()
           }
           const char* str = static_cast<const char*>(entry.addr);
           uint32_t    len = static_cast<uint32_t>(strlen(str));
-          if ((data_length + len + ((i + 1u < data_source_length) ? 1u : 0u)) > DATA_PACK_MAX_LENGTH)
+          if ((_data_length + len + ((i + 1u < _data_source_length) ? 1u : 0u)) > DATA_PACK_MAX_LENGTH)
           {
             return osErrorResource;
           }
-          memcpy(&data[data_length], str, len);
-          data_length += len;
-          if (i + 1u < data_source_length)
+          memcpy(&_data[_data_length], str, len);
+          _data_length += len;
+          if (i + 1u < _data_source_length)
           {
-            data[data_length++] = ',';
+            _data[_data_length++] = ',';
           }
           status = osOK;
           break;
@@ -247,18 +242,18 @@ osStatus_t data_pack::get_data()
           return osError;
       }
 
-      if (entry.type != VAR_TYPE_STRING)
+      if (entry.type != VarType::STRING)
       {
         uint32_t len = static_cast<uint32_t>(strlen(token));
-        if ((data_length + len + ((i + 1u < data_source_length) ? 1u : 0u)) > DATA_PACK_MAX_LENGTH)
+        if ((_data_length + len + ((i + 1u < _data_source_length) ? 1u : 0u)) > DATA_PACK_MAX_LENGTH)
         {
           return osErrorResource;
         }
-        memcpy(&data[data_length], token, len);
-        data_length += len;
-        if (i + 1u < data_source_length)
+        memcpy(&_data[_data_length], token, len);
+        _data_length += len;
+        if (i + 1u < _data_source_length)
         {
-          data[data_length++] = ',';
+          _data[_data_length++] = ',';
         }
         status = osOK;
       }
@@ -273,37 +268,37 @@ osStatus_t data_pack::get_data()
 
     switch (entry.type)
     {
-      case VAR_TYPE_UINT8:
-        status = append_value<uint8_t>(data, DATA_PACK_MAX_LENGTH, &data_length, static_cast<uint8_t*>(entry.addr));
+      case VarType::UINT8:
+        status = append_value<uint8_t>(_data, DATA_PACK_MAX_LENGTH, &_data_length, static_cast<uint8_t*>(entry.addr));
         break;
-      case VAR_TYPE_UINT16:
-        status = append_value<uint16_t>(data, DATA_PACK_MAX_LENGTH, &data_length, static_cast<uint16_t*>(entry.addr));
+      case VarType::UINT16:
+        status = append_value<uint16_t>(_data, DATA_PACK_MAX_LENGTH, &_data_length, static_cast<uint16_t*>(entry.addr));
         break;
-      case VAR_TYPE_UINT32:
-        status = append_value<uint32_t>(data, DATA_PACK_MAX_LENGTH, &data_length, static_cast<uint32_t*>(entry.addr));
+      case VarType::UINT32:
+        status = append_value<uint32_t>(_data, DATA_PACK_MAX_LENGTH, &_data_length, static_cast<uint32_t*>(entry.addr));
         break;
-      case VAR_TYPE_UINT64:
-        status = append_value<uint64_t>(data, DATA_PACK_MAX_LENGTH, &data_length, static_cast<uint64_t*>(entry.addr));
+      case VarType::UINT64:
+        status = append_value<uint64_t>(_data, DATA_PACK_MAX_LENGTH, &_data_length, static_cast<uint64_t*>(entry.addr));
         break;
-      case VAR_TYPE_INT8:
-        status = append_value<int8_t>(data, DATA_PACK_MAX_LENGTH, &data_length, static_cast<int8_t*>(entry.addr));
+      case VarType::INT8:
+        status = append_value<int8_t>(_data, DATA_PACK_MAX_LENGTH, &_data_length, static_cast<int8_t*>(entry.addr));
         break;
-      case VAR_TYPE_INT16:
-        status = append_value<int16_t>(data, DATA_PACK_MAX_LENGTH, &data_length, static_cast<int16_t*>(entry.addr));
+      case VarType::INT16:
+        status = append_value<int16_t>(_data, DATA_PACK_MAX_LENGTH, &_data_length, static_cast<int16_t*>(entry.addr));
         break;
-      case VAR_TYPE_INT32:
-        status = append_value<int32_t>(data, DATA_PACK_MAX_LENGTH, &data_length, static_cast<int32_t*>(entry.addr));
+      case VarType::INT32:
+        status = append_value<int32_t>(_data, DATA_PACK_MAX_LENGTH, &_data_length, static_cast<int32_t*>(entry.addr));
         break;
-      case VAR_TYPE_INT64:
-        status = append_value<int64_t>(data, DATA_PACK_MAX_LENGTH, &data_length, static_cast<int64_t*>(entry.addr));
+      case VarType::INT64:
+        status = append_value<int64_t>(_data, DATA_PACK_MAX_LENGTH, &_data_length, static_cast<int64_t*>(entry.addr));
         break;
-      case VAR_TYPE_FLOAT:
-        status = append_value<float>(data, DATA_PACK_MAX_LENGTH, &data_length, static_cast<float*>(entry.addr));
+      case VarType::FLOAT:
+        status = append_value<float>(_data, DATA_PACK_MAX_LENGTH, &_data_length, static_cast<float*>(entry.addr));
         break;
-      case VAR_TYPE_DOUBLE:
-        status = append_value<double>(data, DATA_PACK_MAX_LENGTH, &data_length, static_cast<double*>(entry.addr));
+      case VarType::DOUBLE:
+        status = append_value<double>(_data, DATA_PACK_MAX_LENGTH, &_data_length, static_cast<double*>(entry.addr));
         break;
-      case VAR_TYPE_STRING:
+      case VarType::STRING:
       {
         if (entry.addr == nullptr)
         {
@@ -313,13 +308,13 @@ osStatus_t data_pack::get_data()
 
         const char* str = static_cast<const char*>(entry.addr);
         uint32_t    len = static_cast<uint32_t>(strlen(str)) + 1u;
-        if ((data_length + len) > DATA_PACK_MAX_LENGTH)
+        if ((_data_length + len) > DATA_PACK_MAX_LENGTH)
         {
           status = osErrorResource;
           break;
         }
-        memcpy(&data[data_length], str, len);
-        data_length += len;
+        memcpy(&_data[_data_length], str, len);
+        _data_length += len;
         status = osOK;
         break;
       }
@@ -337,18 +332,18 @@ osStatus_t data_pack::get_data()
   return osOK;
 }
 
-osStatus_t data_pack::distribute_data()
+osStatus_t DataPack::distribute_data()
 {
-  if (data_format_ == DATA_FORMAT_STR)
+  if (_data_format == DataFormat::STR)
   {
     uint32_t offset = 0;
 
-    for (uint32_t i = 0; i < data_source_length; ++i)
+    for (uint32_t i = 0; i < _data_source_length; ++i)
     {
-      const var_entry& entry = data_source[i];
-      uint32_t         start = offset;
+      const VarEntry& entry = _data_source[i];
+      uint32_t        start = offset;
 
-      while ((offset < data_length) && (data[offset] != ','))
+      while ((offset < _data_length) && (_data[offset] != ','))
       {
         offset++;
       }
@@ -360,43 +355,43 @@ osStatus_t data_pack::distribute_data()
         return osErrorResource;
       }
 
-      memcpy(token, &data[start], token_len);
+      memcpy(token, &_data[start], token_len);
       token[token_len] = '\0';
 
       char* endptr = nullptr;
       switch (entry.type)
       {
-        case VAR_TYPE_UINT8:
+        case VarType::UINT8:
           *static_cast<uint8_t*>(entry.addr) = static_cast<uint8_t>(strtoul(token, &endptr, 10));
           break;
-        case VAR_TYPE_UINT16:
+        case VarType::UINT16:
           *static_cast<uint16_t*>(entry.addr) = static_cast<uint16_t>(strtoul(token, &endptr, 10));
           break;
-        case VAR_TYPE_UINT32:
+        case VarType::UINT32:
           *static_cast<uint32_t*>(entry.addr) = static_cast<uint32_t>(strtoul(token, &endptr, 10));
           break;
-        case VAR_TYPE_UINT64:
+        case VarType::UINT64:
           *static_cast<uint64_t*>(entry.addr) = static_cast<uint64_t>(strtoull(token, &endptr, 10));
           break;
-        case VAR_TYPE_INT8:
+        case VarType::INT8:
           *static_cast<int8_t*>(entry.addr) = static_cast<int8_t>(strtol(token, &endptr, 10));
           break;
-        case VAR_TYPE_INT16:
+        case VarType::INT16:
           *static_cast<int16_t*>(entry.addr) = static_cast<int16_t>(strtol(token, &endptr, 10));
           break;
-        case VAR_TYPE_INT32:
+        case VarType::INT32:
           *static_cast<int32_t*>(entry.addr) = static_cast<int32_t>(strtol(token, &endptr, 10));
           break;
-        case VAR_TYPE_INT64:
+        case VarType::INT64:
           *static_cast<int64_t*>(entry.addr) = static_cast<int64_t>(strtoll(token, &endptr, 10));
           break;
-        case VAR_TYPE_FLOAT:
+        case VarType::FLOAT:
           *static_cast<float*>(entry.addr) = strtof(token, &endptr);
           break;
-        case VAR_TYPE_DOUBLE:
+        case VarType::DOUBLE:
           *static_cast<double*>(entry.addr) = strtod(token, &endptr);
           break;
-        case VAR_TYPE_STRING:
+        case VarType::STRING:
         {
           // STR 模式字符串校验：接收内容必须与本地绑定字符串一致。
           const char* expected = static_cast<const char*>(entry.addr);
@@ -411,18 +406,18 @@ osStatus_t data_pack::distribute_data()
           return osError;
       }
 
-      if ((entry.type != VAR_TYPE_STRING) && ((endptr == nullptr) || (*endptr != '\0')))
+      if ((entry.type != VarType::STRING) && ((endptr == nullptr) || (*endptr != '\0')))
       {
         return osError;
       }
 
-      if (offset < data_length)
+      if (offset < _data_length)
       {
         offset++; // skip comma
       }
     }
 
-    if (offset < data_length)
+    if (offset < _data_length)
     {
       return osError;
     }
@@ -432,55 +427,55 @@ osStatus_t data_pack::distribute_data()
 
   uint32_t offset = 0;
 
-  for (uint32_t i = 0; i < data_source_length; ++i)
+  for (uint32_t i = 0; i < _data_source_length; ++i)
   {
-    const var_entry& entry  = data_source[i];
-    osStatus_t       status = osError;
+    const VarEntry& entry  = _data_source[i];
+    osStatus_t      status = osError;
 
     switch (entry.type)
     {
-      case VAR_TYPE_UINT8:
-        status = extract_value<uint8_t>(data, data_length, &offset, static_cast<uint8_t*>(entry.addr));
+      case VarType::UINT8:
+        status = extract_value<uint8_t>(_data, _data_length, &offset, static_cast<uint8_t*>(entry.addr));
         break;
-      case VAR_TYPE_UINT16:
-        status = extract_value<uint16_t>(data, data_length, &offset, static_cast<uint16_t*>(entry.addr));
+      case VarType::UINT16:
+        status = extract_value<uint16_t>(_data, _data_length, &offset, static_cast<uint16_t*>(entry.addr));
         break;
-      case VAR_TYPE_UINT32:
-        status = extract_value<uint32_t>(data, data_length, &offset, static_cast<uint32_t*>(entry.addr));
+      case VarType::UINT32:
+        status = extract_value<uint32_t>(_data, _data_length, &offset, static_cast<uint32_t*>(entry.addr));
         break;
-      case VAR_TYPE_UINT64:
-        status = extract_value<uint64_t>(data, data_length, &offset, static_cast<uint64_t*>(entry.addr));
+      case VarType::UINT64:
+        status = extract_value<uint64_t>(_data, _data_length, &offset, static_cast<uint64_t*>(entry.addr));
         break;
-      case VAR_TYPE_INT8:
-        status = extract_value<int8_t>(data, data_length, &offset, static_cast<int8_t*>(entry.addr));
+      case VarType::INT8:
+        status = extract_value<int8_t>(_data, _data_length, &offset, static_cast<int8_t*>(entry.addr));
         break;
-      case VAR_TYPE_INT16:
-        status = extract_value<int16_t>(data, data_length, &offset, static_cast<int16_t*>(entry.addr));
+      case VarType::INT16:
+        status = extract_value<int16_t>(_data, _data_length, &offset, static_cast<int16_t*>(entry.addr));
         break;
-      case VAR_TYPE_INT32:
-        status = extract_value<int32_t>(data, data_length, &offset, static_cast<int32_t*>(entry.addr));
+      case VarType::INT32:
+        status = extract_value<int32_t>(_data, _data_length, &offset, static_cast<int32_t*>(entry.addr));
         break;
-      case VAR_TYPE_INT64:
-        status = extract_value<int64_t>(data, data_length, &offset, static_cast<int64_t*>(entry.addr));
+      case VarType::INT64:
+        status = extract_value<int64_t>(_data, _data_length, &offset, static_cast<int64_t*>(entry.addr));
         break;
-      case VAR_TYPE_FLOAT:
-        status = extract_value<float>(data, data_length, &offset, static_cast<float*>(entry.addr));
+      case VarType::FLOAT:
+        status = extract_value<float>(_data, _data_length, &offset, static_cast<float*>(entry.addr));
         break;
-      case VAR_TYPE_DOUBLE:
-        status = extract_value<double>(data, data_length, &offset, static_cast<double*>(entry.addr));
+      case VarType::DOUBLE:
+        status = extract_value<double>(_data, _data_length, &offset, static_cast<double*>(entry.addr));
         break;
-      case VAR_TYPE_STRING:
+      case VarType::STRING:
       {
-        if (offset >= data_length)
+        if (offset >= _data_length)
         {
           return osErrorResource;
         }
 
-        while ((offset < data_length) && (data[offset] != '\0'))
+        while ((offset < _data_length) && (_data[offset] != '\0'))
         {
           offset++;
         }
-        if (offset >= data_length)
+        if (offset >= _data_length)
         {
           return osErrorResource;
         }
@@ -506,7 +501,7 @@ osStatus_t data_pack::distribute_data()
  * @brief 打包后发送到 USB CDC。
  * @return osStatus_t 发送结果。
  */
-osStatus_t data_pack::send_data()
+osStatus_t DataPack::send_data()
 {
   osStatus_t status = get_data();
   if (status != osOK)
@@ -514,16 +509,16 @@ osStatus_t data_pack::send_data()
     return status;
   }
 
-  if (data_length == 0u)
+  if (_data_length == 0u)
   {
     return osErrorResource;
   }
 
-  const uint8_t tail_hash = calc_payload_hash(data, data_length);
+  const uint8_t tail_hash = calc_payload_hash(_data, _data_length);
 
-  data[data_length++] = tail_hash;
+  _data[_data_length++] = tail_hash;
 
-  if (!bsp_usb.cdc_write(data, data_length))
+  if (!bsp_usb.cdc_write(_data, _data_length))
   {
     return osError;
   }
@@ -535,7 +530,7 @@ osStatus_t data_pack::send_data()
  * @brief 从 USB CDC 接收后分发到绑定变量。
  * @return osStatus_t 接收与分发结果。
  */
-osStatus_t data_pack::receive_data()
+osStatus_t DataPack::receive_data()
 {
   uint32_t available = bsp_usb.cdc_available();
   if (available == 0u)
@@ -561,7 +556,7 @@ osStatus_t data_pack::receive_data()
   }
 
   uint32_t start = 0;
-  while ((start < read_len) && (frame[start] != header))
+  while ((start < read_len) && (frame[start] != _header))
   {
     start++;
   }
@@ -584,16 +579,16 @@ osStatus_t data_pack::receive_data()
     return osErrorResource;
   }
 
-  memcpy(data, &frame[start + 1u], payload_len);
+  memcpy(_data, &frame[start + 1u], payload_len);
 
   const uint8_t recv_tail_hash = frame[end];
-  const uint8_t calc_tail_hash = calc_payload_hash(data, payload_len);
+  const uint8_t calc_tail_hash = calc_payload_hash(_data, payload_len);
   if (recv_tail_hash != calc_tail_hash)
   {
     return osError;
   }
 
-  data_length = payload_len;
+  _data_length = payload_len;
 
   // 通信校验：帧头与哈希合法后，再通过 STR 模式字符串一致性校验。
   return distribute_data();

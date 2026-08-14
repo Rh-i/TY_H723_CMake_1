@@ -1,3 +1,15 @@
+/**
+ * @file data_pack.hpp
+ * @author Rh
+ * @brief DataPack 数据打包模块 —— 变量地址注册、单帧打包/解包、USB CDC 传输
+ * @version 0.1
+ * @date 2026-08-13
+ *
+ * @copyright Copyright (c) 2026
+ *
+ * @details 打包、解包与 USB 传输实现位于 data_pack.cpp。
+ */
+
 #ifndef __DATA_PACK_HPP__
 #define __DATA_PACK_HPP__
 
@@ -9,70 +21,95 @@
 /**
  * @brief 数据打包格式。
  */
-enum data_format
+enum class DataFormat
 {
-  DATA_FORMAT_HEX, /**< 以二进制字节流方式打包与发送。 */
-  DATA_FORMAT_STR, /**< 以字符串方式打包与发送（当前未实现）。 */
+  HEX, /**< 以二进制字节流方式打包与发送。 */
+  STR, /**< 以字符串方式打包与发送（当前未实现）。 */
 };
 
 /**
  * @brief 单帧数据包。
  *
  * @details
- * data_pack 负责管理变量地址、打包与解包，以及通过 USB CDC 收发单帧数据。
+ * DataPack 负责管理变量地址、打包与解包，以及通过 USB CDC 收发单帧数据。
  */
-class data_pack
+class DataPack
 {
+public:
+  /**
+   * @brief 数据包配置结构体（可匿名按序传入）。
+   */
+  struct Config
+  {
+    /**
+     * @brief 按序构造配置（参数顺序 = 字段顺序）。
+     */
+    Config(uint8_t header = 0xAA, DataFormat format = DataFormat::HEX)
+      : header(header),
+        format(format)
+    {
+    }
+
+    uint8_t   header; ///< 帧头字节。
+    DataFormat format; ///< 打包格式。
+  };
+
+  /**
+   * @brief 构造函数。
+   * @param cfg 数据包配置（帧头/格式，可匿名按序传入）。
+   */
+  DataPack(const Config &cfg);
+
 private:
   /** @brief 数据缓存区。 */
-  uint8_t data[DATA_PACK_MAX_LENGTH];
+  uint8_t _data[DATA_PACK_MAX_LENGTH];
   /** @brief 当前缓存区有效字节数。 */
-  uint32_t data_length;
+  uint32_t _data_length;
 
   /**
    * @brief 支持的数据类型标签。
    */
-  enum var_type
+  enum class VarType
   {
-    VAR_TYPE_UINT8,
-    VAR_TYPE_UINT16,
-    VAR_TYPE_UINT32,
-    VAR_TYPE_UINT64,
-    VAR_TYPE_INT8,
-    VAR_TYPE_INT16,
-    VAR_TYPE_INT32,
-    VAR_TYPE_INT64,
-    VAR_TYPE_FLOAT,
-    VAR_TYPE_DOUBLE,
-    VAR_TYPE_STRING,
+    UINT8,
+    UINT16,
+    UINT32,
+    UINT64,
+    INT8,
+    INT16,
+    INT32,
+    INT64,
+    FLOAT,
+    DOUBLE,
+    STRING,
   };
 
   /**
    * @brief 单个数据源条目。
    */
-  struct var_entry
+  struct VarEntry
   {
-    void*    addr; /**< 变量地址。 */
-    var_type type; /**< 变量类型。 */
+    void*   addr; /**< 变量地址。 */
+    VarType type; /**< 变量类型。 */
   };
 
   /** @brief 固定帧头（由构造函数指定）。 */
-  uint8_t header;
+  uint8_t _header;
 
   /** @brief 本包绑定的数据源数组。 */
-  var_entry data_source[DATA_PACK_MAX_LENGTH];
+  VarEntry _data_source[DATA_PACK_MAX_LENGTH];
 
   /** @brief 已绑定的数据源数量。 */
-  uint32_t data_source_length;
+  uint32_t _data_source_length;
 
   /** @brief 关联的数据包源数组。 */
-  data_pack* data_pack_source[DATA_PACK_MAX_LENGTH];
+  DataPack* _data_pack_source[DATA_PACK_MAX_LENGTH];
 
   /** @brief 已关联的数据包源数量。 */
-  uint8_t data_pack_source_length;
+  uint8_t _data_pack_source_length;
 
   /** @brief 全局打包格式。 */
-  static data_format data_format_;
+  static DataFormat _data_format;
 
   /** @brief 清空缓存数据并复位长度。 */
   void clear_data();
@@ -83,18 +120,11 @@ private:
    * @param type 变量类型。
    * @return osStatus_t 添加结果。
    */
-  osStatus_t link_data_entry_(void* addr, var_type type);
+  osStatus_t link_data_entry(void* addr, VarType type);
 
 public:
-  /**
-   * @brief 构造函数。
-   * @param header 帧头。
-   * @param data_format 数据格式。
-   */
-  data_pack(uint8_t header = 0xAA, data_format data_format = DATA_FORMAT_HEX);
-
   /** @brief 析构函数。 */
-  ~data_pack();
+  ~DataPack();
 
   /** @brief 绑定 uint8_t 变量地址。 */
   osStatus_t link_data(uint8_t* data_source);
@@ -125,11 +155,11 @@ public:
   osStatus_t link_data(const char* str);
 
   /**
-   * @brief 关联一个 data_pack，并复制其数据源条目到当前对象。
+   * @brief 关联一个 DataPack，并复制其数据源条目到当前对象。
    * @param pack_source 源包对象。
    * @return osStatus_t 关联结果。
    */
-  osStatus_t link_data_pack(data_pack* pack_source);
+  osStatus_t link_data_pack(DataPack* pack_source);
 
   /**
    * @brief 从已绑定变量读取值并打包到内部缓存。

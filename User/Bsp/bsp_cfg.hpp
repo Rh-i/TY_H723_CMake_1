@@ -12,7 +12,10 @@
 #ifndef __BSP_CFG_HPP__
 #define __BSP_CFG_HPP__
 
+#include "bsp_buzzer.hpp"
 #include "bsp_can.hpp"
+#include "bsp_gpio.hpp"
+#include "bsp_key.hpp"
 #include "bsp_uart.hpp"
 #include "bsp_usb.hpp"
 
@@ -30,9 +33,34 @@ extern BspCan bsp_can2;
 extern BspCan bsp_can3;
 
 
-///< USART
-extern BspUart<64, 8> bsp_usart1;
+///< UART
+extern BspUart<128, 8> bsp_uart1;
+extern BspUart<128, 8> bsp_uart4;
+extern BspUart<128, 8> bsp_uart7;
+extern BspUart<128, 8> bsp_uart8;
+extern BspUart<128, 8> bsp_uart9;
+extern BspUart<128, 8> bsp_uart10;
 
+
+///< GPIO 输出引脚（电源控制、片选等）
+extern BspGpio power_24v_2;
+extern BspGpio power_24v_1;
+extern BspGpio power_5v;
+extern BspGpio gyro_acc_cs;
+extern BspGpio gyro_gyro_cs;
+extern BspGpio dcmi_pwdn;
+extern BspGpio btb_gpio;
+extern BspGpio lcd_cs;
+extern BspGpio lcd_blk;
+extern BspGpio lcd_res;
+extern BspGpio lcd_dc;
+
+
+///< 蜂鸣器
+extern BspBuzzer bsp_buzzer;
+
+///< 按键
+extern BspKey key_user;
 
 ///< USB
 extern BspUsb& bsp_usb;

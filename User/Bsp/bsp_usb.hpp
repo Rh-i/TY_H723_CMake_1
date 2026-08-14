@@ -111,13 +111,13 @@ private:
   /**
    * @brief 处理 CDC 接收轮询并分发回调。
    */
-  void process_rx_();
+  void process_rx();
 
   BspUsb() = default;
 
-  RxCallback rx_callback_ = nullptr;
-  void*      rx_user_ctx_ = nullptr;
-  bool       require_dtr_ = false;
+  RxCallback _rx_callback = nullptr;
+  void*      _rx_user_ctx = nullptr;
+  bool       _require_dtr = false;
 };
 
 #endif

@@ -11,9 +11,7 @@
  *
  * @details 使用bsp_can和FreeRTOS封装，适用于电赛云台
  *
- * @note 初始化示例
- *       JC2804 motor_yaw(bsp_can1, 2);    // 创建类对象
- *       motor_yaw.init();                 // 初始化电机（在内核初始化之后使用）
+ * @note 初始化示例（全局实例 motor_yaw/motor_pitch 在 device_cfg.cpp 中定义）
  *       motor_yaw.on_can_message(rx_msg); // 在CAN接收回调处理任务中调用
  *
  * @note 控制示例
@@ -30,21 +28,8 @@
 #define __JC2804_HPP__
 
 
-#include "bsp_cfg.hpp" // IWYU pragma: keep
-
-
-/* USER CODE BEGIN */
-
-/* ==================== 外部声明 ==================== */
-
-// 前向声明
-class JC2804;
-
-extern JC2804 motor_pitch; ///< Pitch轴电机实例
-extern JC2804 motor_yaw;   ///< Yaw轴电机实例
-
-/* USER CODE END */
-
+#include <stdint.h>
+#include "bsp_can.hpp"
 
 /**
  * @brief 电机数据结构体
@@ -72,11 +57,28 @@ public:
   /* ==================== 构造与析构 ==================== */
 
   /**
-   * @brief 构造函数
-   * @param can_interface CAN接口引用
-   * @param device_id 设备ID
+   * @brief 电机配置结构体（可匿名按序传入）
    */
-  JC2804(BspCan& can_interface, uint8_t device_id);
+  struct Config
+  {
+    /**
+     * @brief 按序构造配置（参数顺序 = 字段顺序）
+     */
+    Config(BspCan &can, uint8_t device_id)
+      : can(can),
+        device_id(device_id)
+    {
+    }
+
+    BspCan &can;        ///< CAN 接口引用
+    uint8_t device_id;  ///< 设备 ID
+  };
+
+  /**
+   * @brief 构造函数
+   * @param cfg 电机配置（CAN 接口 + 设备ID，可匿名按序传入）
+   */
+  JC2804(const Config &cfg);
 
   /**
    * @brief 析构函数
@@ -240,7 +242,7 @@ public:
    * @brief CAN消息回调处理
    * @param rx_msg CAN接收消息
    */
-  void on_can_message(const CanRxMsg_t& rx_msg);
+  void on_can_message(const CanRxMsg& rx_msg);
 
 
 private:
@@ -255,7 +257,7 @@ private:
 
   /* ==================== 接收类型枚举 ==================== */
 
-  enum RequestType
+  enum class RequestType
   {
     NONE_REQUEST = 0,    ///< 无请求
     VOLTAGE_REQUEST,     ///< 电压请求
@@ -272,18 +274,16 @@ private:
 
   RequestType _last_request_type; ///< 上一次请求类型
   BspCan&     _can;               ///< CAN接口引用
-  MotorData   latest_data;        ///< 最新数据存储
+  MotorData   _latest_data;       ///< 最新数据存储
 
 
   /* ==================== 私有成员函数 ==================== */
 
   /**
    * @brief 异步发送命令
-   * @param cmd 命令字节
    * @param data 数据指针
-   * @param len 数据长度
    */
-  void send_async_command(uint8_t cmd, const uint8_t* data, uint8_t len);
+  void send_async_command(const uint8_t* data);
 
   /**
    * @brief 发送读取请求并记录请求类型
@@ -299,7 +299,7 @@ private:
    * @param rx_msg 接收消息引用
    * @return 验证结果
    */
-  bool validate_response(uint8_t expected_cmd, const CanRxMsg_t& rx_msg);
+  bool validate_response(uint8_t expected_cmd, const CanRxMsg& rx_msg);
 
   /**
    * @brief 解析接收数据

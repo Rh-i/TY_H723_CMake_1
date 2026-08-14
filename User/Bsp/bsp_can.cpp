@@ -57,13 +57,13 @@ extern "C"
 
 /* ==================== 类函数实现 ==================== */
 
-BspCan::BspCan(FDCAN_HandleTypeDef *hfdcan, const char *name, CanMode mode)
+BspCan::BspCan(const Config &cfg)
 
   : _rx_message_buffer(nullptr),
     _tx_message_buffer(nullptr),
-    _hfdcan(hfdcan),
-    _name(name),
-    _work_mode(mode)
+    _hfdcan(cfg.hfdcan),
+    _name(cfg.name),
+    _work_mode(cfg.mode)
 {
 }
 
@@ -85,73 +85,68 @@ BspCan::~BspCan()
   }
 }
 
-bool BspCan::init()
+Status BspCan::init()
 {
   // 创建接收消息缓冲区
-  _rx_message_buffer = xMessageBufferCreate((sizeof(CanRxMsg_t) + 4) * 8);
+  _rx_message_buffer = xMessageBufferCreate((sizeof(CanRxMsg) + 4) * 8);
   if (_rx_message_buffer == nullptr)
-    return false;
+    return Status::IO_ERROR;
 
   // 创建发送消息缓冲区
-  _tx_message_buffer = xMessageBufferCreate((sizeof(CanTxMsg_t) + 4) * 8);
+  _tx_message_buffer = xMessageBufferCreate((sizeof(CanTxMsg) + 4) * 8);
   if (_tx_message_buffer == nullptr)
   {
     vMessageBufferDelete(_rx_message_buffer);
-    return false;
+    return Status::IO_ERROR;
   }
 
   // 配置过滤器
-  if (config_filter() != true)
-    return false;
+  if (config_filter() != Status::OK)
+    return Status::IO_ERROR;
 
   // 启动硬件
-  if (start_hardware() != true)
-    return false;
+  if (start_hardware() != Status::OK)
+    return Status::IO_ERROR;
 
   // 开启接收和发送完成中断
-  if (start_reception() != true)
-    return false;
+  if (start_reception() != Status::OK)
+    return Status::IO_ERROR;
 
-  return true;
+  return Status::OK;
 }
 
-bool BspCan::send(uint32_t stdId, uint8_t *pData)
+Status BspCan::send(uint32_t std_id, uint8_t *data)
 {
-  if (pData == nullptr)
-    return false;
+  if (data == nullptr)
+    return Status::BAD_ARG;
   if (_tx_message_buffer == nullptr)
-    return false;
+    return Status::NOT_INIT;
 
-  CanTxMsg_t txMsg;
-  txMsg.std_id = stdId;
-  memcpy(txMsg.data, pData, 8);
+  CanTxMsg txMsg;
+  txMsg.std_id = std_id;
+  memcpy(txMsg.data, data, 8);
 
   // 放入发送缓冲区（不阻塞）
-  xMessageBufferSend(_tx_message_buffer, &txMsg, sizeof(CanTxMsg_t), 0);
-
-  // 之前是这样写的，但是返回的sent有问题。但是如果我不检查sent，直接发，数据是没问题的
-  // size_t sent = xMessageBufferSend(_tx_message_buffer, &txMsg, sizeof(CanTxMsg_t), 0);
-  // if (sent != sizeof(CanTxMsg_t))
-  // return false;
+  size_t sent = xMessageBufferSend(_tx_message_buffer, &txMsg, sizeof(CanTxMsg), 0);
 
   // 如果发送FIFO有空闲，触发一次发送
   trigger_tx();
 
-  return true;
+  return (sent == sizeof(CanTxMsg)) ? Status::OK : Status::FULL;
 }
 
-bool BspCan::receive(CanRxMsg_t *msg, uint32_t timeout)
+Status BspCan::receive(CanRxMsg *msg, uint32_t timeout)
 {
   if (msg == nullptr)
-    return false;
+    return Status::BAD_ARG;
   if (_rx_message_buffer == nullptr)
-    return false;
+    return Status::NOT_INIT;
 
-  size_t received = xMessageBufferReceive(_rx_message_buffer, msg, sizeof(CanRxMsg_t), timeout);
-  return (received > 0) ? true : false;
+  size_t received = xMessageBufferReceive(_rx_message_buffer, msg, sizeof(CanRxMsg), timeout);
+  return (received > 0) ? Status::OK : Status::TIMEOUT;
 }
 
-bool BspCan::config_filter()
+Status BspCan::config_filter()
 {
   FDCAN_FilterTypeDef sFilterConfig;
   sFilterConfig.IdType       = FDCAN_STANDARD_ID;
@@ -162,7 +157,7 @@ bool BspCan::config_filter()
   sFilterConfig.FilterID2    = 0x7FF;
 
   if (HAL_FDCAN_ConfigFilter(_hfdcan, &sFilterConfig) != HAL_OK)
-    return false;
+    return Status::IO_ERROR;
 
   if (HAL_FDCAN_ConfigGlobalFilter(_hfdcan,
                                    FDCAN_ACCEPT_IN_RX_FIFO0,
@@ -171,29 +166,29 @@ bool BspCan::config_filter()
                                    FDCAN_FILTER_REMOTE)
       != HAL_OK)
   {
-    return false;
+    return Status::IO_ERROR;
   }
-  return true;
+  return Status::OK;
 }
 
-bool BspCan::start_hardware()
+Status BspCan::start_hardware()
 {
   if (HAL_FDCAN_Start(_hfdcan) != HAL_OK)
-    return false;
-  return true;
+    return Status::IO_ERROR;
+  return Status::OK;
 }
 
-bool BspCan::start_reception()
+Status BspCan::start_reception()
 {
   // 开启FIFO0新消息中断
   if (HAL_FDCAN_ActivateNotification(_hfdcan, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0) != HAL_OK)
-    return false;
+    return Status::IO_ERROR;
 
   // 开启发送完成中断
   if (HAL_FDCAN_ActivateNotification(_hfdcan, FDCAN_IT_TX_COMPLETE, 0) != HAL_OK)
-    return false;
+    return Status::IO_ERROR;
 
-  return true;
+  return Status::OK;
 }
 
 /**
@@ -206,8 +201,8 @@ void BspCan::trigger_tx()
 
   if (HAL_FDCAN_GetTxFifoFreeLevel(_hfdcan) > 0)
   {
-    CanTxMsg_t txMsg;
-    size_t     len = xMessageBufferReceive(_tx_message_buffer, &txMsg, sizeof(CanTxMsg_t), 0);
+    CanTxMsg txMsg;
+    size_t   len = xMessageBufferReceive(_tx_message_buffer, &txMsg, sizeof(CanTxMsg), 0);
     if (len > 0)
     {
       FDCAN_TxHeaderTypeDef txHeader;
@@ -237,8 +232,8 @@ void BspCan::trigger_tx_from_isr(BaseType_t *pxHigherPriorityTaskWoken)
 
   if (HAL_FDCAN_GetTxFifoFreeLevel(_hfdcan) > 0)
   {
-    CanTxMsg_t txMsg;
-    size_t     len = xMessageBufferReceiveFromISR(_tx_message_buffer, &txMsg, sizeof(CanTxMsg_t), pxHigherPriorityTaskWoken);
+    CanTxMsg txMsg;
+    size_t   len = xMessageBufferReceiveFromISR(_tx_message_buffer, &txMsg, sizeof(CanTxMsg), pxHigherPriorityTaskWoken);
     if (len > 0)
     {
       FDCAN_TxHeaderTypeDef txHeader;
@@ -265,13 +260,13 @@ void BspCan::process_fifo0_isr()
   if (_hfdcan == nullptr || _rx_message_buffer == nullptr)
     return;
 
-  CanRxMsg_t rxMsg;
+  CanRxMsg rxMsg;
   if (HAL_FDCAN_GetRxMessage(_hfdcan, FDCAN_RX_FIFO0, &rxMsg.header, rxMsg.data) == HAL_OK)
   {
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
     xMessageBufferSendFromISR(_rx_message_buffer,
                               &rxMsg,
-                              sizeof(CanRxMsg_t),
+                              sizeof(CanRxMsg),
                               &xHigherPriorityTaskWoken);
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
   }
