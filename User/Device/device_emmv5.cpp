@@ -1,5 +1,4 @@
 #include "device_emmv5.hpp"
-#include "emm_frame.hpp"
 
 #include "task.h"    // xTaskCreate
 #include "semphr.h"  // xSemaphoreGive
