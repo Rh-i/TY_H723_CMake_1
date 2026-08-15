@@ -6,7 +6,6 @@
  * @date 2026-04-18
  *
  * @copyright Copyright (c) 2026
- *
  */
 
 #ifndef __BSP_CFG_HPP__

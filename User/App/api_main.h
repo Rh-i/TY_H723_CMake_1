@@ -5,11 +5,12 @@
  * @version 0.1
  * @date 2026-01-20
  *
- * @note 各个外设的中断回调函数，放到了各个的BSP中实现，方便查找
- *
  * @copyright Copyright (c) 2026
  *
- * @details 使用说明：
+ * @note 各个外设的中断回调函数，放到了各个的BSP中实现，方便查找
+ *
+ * @note 使用说明：
+ *
  *          - all_init()：在FreeRTOS初始化阶段(MX_FREERTOS_Init)中调用，用于初始化外设和创建任务
  *          - StartDefaultTask()：默认任务，创建各业务任务并循环运行
  *          - 业务任务声明见 app_task.hpp，测试任务声明见 app_test.hpp

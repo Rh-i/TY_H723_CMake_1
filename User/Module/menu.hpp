@@ -9,7 +9,7 @@
  *
  * @details 菜单逻辑全部在本模块：
  *
- *   - menu_init()         ：绘制首屏（LCD 硬件初始化在 device_init() 中完成）
+ *   - menu_init()          ：绘制首屏（LCD 硬件初始化在 device_init() 中完成）
  *   - menu_on_short_press()：短按切换选中项（1→2→3→1），蜂鸣提示
  *   - menu_on_long_press() ：长按触发当前选中项（give menu_sem[sel]），蜂鸣提示
  *

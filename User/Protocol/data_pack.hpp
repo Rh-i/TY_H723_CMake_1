@@ -44,12 +44,13 @@ public:
     /**
      * @brief 按序构造配置（参数顺序 = 字段顺序）。
      */
-    Config(uint8_t header = 0xAA, DataFormat format = DataFormat::HEX) : header(header),
-                                                                         format(format)
+    Config(uint8_t header = 0xAA, DataFormat format = DataFormat::HEX)
+      : header(header),
+        format(format)
     {
     }
 
-    uint8_t    header; ///< 帧头字节。
+    uint8_t   header; ///< 帧头字节。
     DataFormat format; ///< 打包格式。
   };
 
@@ -57,7 +58,7 @@ public:
    * @brief 构造函数。
    * @param cfg 数据包配置（帧头/格式，可匿名按序传入）。
    */
-  DataPack(const Config& cfg);
+  DataPack(const Config &cfg);
 
 private:
   /** @brief 数据缓存区。 */

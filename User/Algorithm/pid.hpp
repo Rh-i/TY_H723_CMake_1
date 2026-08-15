@@ -7,7 +7,7 @@
  *
  * @copyright Copyright (c) 2026
  *
- * @brief 使用示例
+ * @note 使用示例
  *
  * @note 实例化（链式配置，参数含义一目了然）
  *

@@ -19,14 +19,10 @@
  *
  *   // 全局实例化类 在bsp_cfg.cpp中
  *   __attribute__((section(".dma_buffer")))
- *   BspUart<128,8> bsp_uart1({&huart1, ReceiveMode::SINGLE_BUFFER, true, 1});
- *
- *   bsp_uart1.init();                           // 放到bsp_init中初始化串口
- *
- * @note 在任务中使用。串口设备只有流缓冲区/消息邮箱有内置的锁，没有主动写的mutex,需要自己处理冲突情况
- *
- *    bsp_uart1.receive(buffer,8);               // 从接收的缓冲区里面读数据，读取后对应数据会被清空
- *
+ *   BspUart<128,8> bsp_uart1({&huart1, ReceiveMode::SING *   bsp_uart1.init();                           // 放到bsp_init中初始化串口   // 需要freerto使用
+ *。串口设备只有流缓冲区/消息邮箱有内置的锁，没有主动写的mutex,需要自己处理冲突情况
+ * @ *    bsp_uart1.receive(buffer,8);               // 从接收的缓冲区里面读数据，读取后对应数据会被清空
+ * // 从自动中断接收的缓冲区里面接收，无需处理直接拿
  *    bsp_uart1.send(buffer,8);                  // 存入发送缓冲区，然后自动发送
  *    bsp_uart1.printf("val=%d\r\n", 42);        // 格式化输出（非阻塞，DMA发送）
  *
@@ -51,7 +47,7 @@
 enum class ReceiveMode
 {
   LATEST_ONLY   = 1, // 仅保留最新一次接收到的数据（使用消息邮箱）（不能开FIFO）
-  SINGLE_BUFFER = 2  // 使用单个流缓冲区
+  SINGLE_BUFFER = 2, // 使用单个流缓冲区
 };
 
 
@@ -64,21 +60,21 @@ private:
   UART_HandleTypeDef *_huart;                  ///< UART句柄指针，指向底层硬件接口
   QueueHandle_t       _msg_queue_id = nullptr; ///< FreeRTOS消息队列句柄，用于LATEST_ONLY模式
 
-  StreamBufferHandle_t _rx_stream_buffer = nullptr; ///< 接收流缓冲区句柄（SINGLE_BUFFER 模式）
+  StreamBufferHandle_t _rx_stream_buffer = nullptr; ///< 接收流缓冲区（SINGLE_BUFFER 模式）
 
   StreamBufferHandle_t _tx_stream_buffer = nullptr; ///< FreeRTOS发送流缓冲区句柄
 
-  ReceiveMode _receive_mode;                ///< 接收模式，指定数据接收策略
-  bool        _rx_active = false;           ///< 接收状态标志，指示是否正在接收数据
-  uint8_t     _rx_dma_buffer[BUFFER_SIZE];  ///< DMA接收缓冲区，用于多字节接收
-  uint8_t     _tx_dma_buffer[BUFFER_SIZE];  ///< DMA发送缓冲区，用于多字节发送
-  char        _printf_buffer[BUFFER_SIZE];  ///< printf 格式化缓冲区（vsnprintf 输出到此处）
-  size_t      _buffer_size   = BUFFER_SIZE; ///< 缓冲区大小，单位字节
-  size_t      _msg_item_size = MSG_SIZE;    ///< 消息队列中每个项目的大小
-  bool        _transmit_enable;             ///< 是否启用发送
-  uint32_t    _last_received_length = 0;    ///< 最后一次接收的数据长度
-  int         _instance_id;                 ///< 实例ID，用于生成唯一资源名称
-  char        _msgq_name[32];               ///< 实例消息队列的名字，用于调试时看到名字
+  ReceiveMode _receive_mode;                 ///< 接收模式，指定数据接收策略
+  bool        _rx_active = false;            ///< 接收状态标志，指示是否正在接收数据
+  uint8_t     _rx_dma_buffer[BUFFER_SIZE];   ///< DMA接收缓冲区，用于多字节接收
+  uint8_t     _tx_dma_buffer[BUFFER_SIZE];   ///< DMA发送缓冲区，用于多字节发送
+  char        _printf_buffer[BUFFER_SIZE];   ///< printf 格式化缓冲区（vsnprintf 输出到此处）
+  size_t      _buffer_size    = BUFFER_SIZE; ///< 缓冲区大小，单位字节
+  size_t      _msg_item_size  = MSG_SIZE;    ///< 消息队列中每个项目的大小
+  bool        _transmit_enable;              ///< 是否启用发送
+  uint32_t    _last_received_length = 0;     ///< 最后一次接收的数据长度
+  int         _instance_id;                  ///< 实例ID，用于生成唯一资源名称
+  char        _msgq_name[32];                ///< 实例消息队列的名字，用于调试时看到名字
 
 
 public:
@@ -90,10 +86,12 @@ public:
     /**
      * @brief 按序构造配置（参数顺序 = 字段顺序）
      */
-    Config(UART_HandleTypeDef *huart = nullptr, ReceiveMode rx_mode = ReceiveMode::SINGLE_BUFFER, bool transmit_enable = true, int instance_id = 0) : huart(huart),
-                                                                                                                                                      rx_mode(rx_mode),
-                                                                                                                                                      transmit_enable(transmit_enable),
-                                                                                                                                                      instance_id(instance_id)
+    Config(UART_HandleTypeDef *huart = nullptr, ReceiveMode rx_mode = ReceiveMode::SINGLE_BUFFER,
+           bool transmit_enable = true, int instance_id = 0)
+      : huart(huart),
+        rx_mode(rx_mode),
+        transmit_enable(transmit_enable),
+        instance_id(instance_id)
     {
     }
 
