@@ -3,13 +3,11 @@
  * @author Rh
  * @brief 实现了一个简易的串口驱动（FreeRTOS）（只接收最新数据不能用FIFO）
  * @version 0.2
- * @date 2026-02-08
+ * @date 2026-08-09
  *
- * @todo 1. 中断回调已改为 if-else 直接判断句柄（无查表）
- *       2. 接收到的数据,需要在服务层写分发处理
+ * @todo 1. 接收到的数据,需要在应用层的app_message写分发处理
  *
  * @copyright Copyright (c) 2026
- *
  *
  * @details 使用示例：（必须要在freertos的任务中运行收发 中断中不行 中断不能阻塞）
            （使用的IDLE中断进行接收 发送也是同理）
@@ -23,11 +21,12 @@
  *   __attribute__((section(".dma_buffer")))
  *   BspUart<128,8> bsp_uart1({&huart1, ReceiveMode::SINGLE_BUFFER, true, 1});
  *
- *   bsp_uart1.init();                           // 需要freertos内核初始化成功之后使用
+ *   bsp_uart1.init();                           // 放到bsp_init中初始化串口
  *
- * @note extern好之后，在任务中使用
+ * @note 在任务中使用。串口设备只有流缓冲区/消息邮箱有内置的锁，没有主动写的mutex,需要自己处理冲突情况
  *
- *    bsp_uart1.receive(buffer,8);               // 从自动中断接收的缓冲区里面接收，无需处理直接拿
+ *    bsp_uart1.receive(buffer,8);               // 从接收的缓冲区里面读数据，读取后对应数据会被清空
+ *
  *    bsp_uart1.send(buffer,8);                  // 存入发送缓冲区，然后自动发送
  *    bsp_uart1.printf("val=%d\r\n", 42);        // 格式化输出（非阻塞，DMA发送）
  *

@@ -9,13 +9,15 @@
  *
  * @details BspGpio 类：GPIO 输出引脚的 set/reset/toggle/read 封装。
  *
+ * @note 两种初始化方式:
+ *       1. 构造时绑定: BspGpio power({GPIOA, GPIO_PIN_5});
+ *       2. 默认构造 + init(): BspGpio led; led.init({GPIOA, GPIO_PIN_5});
+ *
  * @note 使用示例：
- * @code
- *   BspGpio led;
- *   led.init({GPIOA, GPIO_PIN_5});
+ *
  *   led.set();
  *   led.toggle();
- * @endcode
+ *
  */
 
 #ifndef __BSP_GPIO_HPP__

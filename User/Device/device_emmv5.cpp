@@ -12,7 +12,7 @@ DeviceEmmV5 *DeviceEmmV5::_instances[DeviceEmmV5::MAX_INSTANCES] = {};
 size_t       DeviceEmmV5::_instance_count                        = 0;
 
 
-/* ==================== 系统参数表（2.3：表驱动，收敛 4 份 switch） ==================== */
+/* ==================== 系统参数表（表驱动） ==================== */
 
 struct SysParamDef
 {
@@ -109,7 +109,7 @@ Status DeviceEmmV5::_send_cmd(const uint8_t *cmd, size_t len)
 
 
 /**
- * @brief 将命令追加到 MMCL 成员缓冲区（2.2）
+ * @brief 将命令追加到 MMCL 成员缓冲区
  * @param cmd  命令字节数组
  * @param len  数据长度
  */
@@ -455,7 +455,7 @@ void DeviceEmmV5::origin_modify_sl_rp(bool svF, uint16_t sl_rp)
  */
 void DeviceEmmV5::auto_return_sys_params_timed(EmmSysParam s, uint16_t time_ms)
 {
-  // 2.3：表驱动构建 addr + 0x11 0x18 + code + time_ms(2B) + 校验
+  // 表驱动构建 addr + 0x11 0x18 + code + time_ms(2B) + 校验
   EmmFrame f;
   f.u8(_addr);
   f.u8(0x11);
@@ -473,7 +473,7 @@ void DeviceEmmV5::auto_return_sys_params_timed(EmmSysParam s, uint16_t time_ms)
  */
 void DeviceEmmV5::read_sys_params(EmmSysParam s)
 {
-  // 2.3：表驱动构建 addr + code + 校验
+  // 表驱动构建 addr + code + 校验
   EmmFrame f;
   f.u8(_addr);
   f.u8(sys_param_code(s));
@@ -918,7 +918,7 @@ void DeviceEmmV5::send_multi_motor_cmd(uint8_t addr)
   // 多电机命令的总字节数 = MMCL数据 + 5（地址、功能码、长度高、长度低、校验）
   uint16_t len = _mmcl_count + 5;
 
-  // 2.2：直接在成员缓冲区上构建完整帧，不再在栈上开 517B 大数组
+  // 直接在成员缓冲区上构建完整帧（避免栈上 517B 大数组）
   memmove(_mmcl_buf + 4, _mmcl_buf, _mmcl_count); // MMCL 数据后移 4 字节，腾出头部
 
   _mmcl_buf[0]               = addr;
@@ -1177,7 +1177,7 @@ void DeviceEmmV5::mmcl_origin_modify_sl_rp(bool svF, uint16_t sl_rp)
 
 void DeviceEmmV5::mmcl_auto_return_sys_params_timed(EmmSysParam s, uint16_t time_ms)
 {
-  // 2.3：表驱动构建后追加到成员 MMCL 缓冲（2.2）
+  // 表驱动构建后追加到成员 MMCL 缓冲
   EmmFrame f;
   f.u8(_addr);
   f.u8(0x11);
@@ -1191,7 +1191,7 @@ void DeviceEmmV5::mmcl_auto_return_sys_params_timed(EmmSysParam s, uint16_t time
 
 void DeviceEmmV5::mmcl_read_sys_params(EmmSysParam s)
 {
-  // 2.3：表驱动构建后追加到成员 MMCL 缓冲（2.2）
+  // 表驱动构建后追加到成员 MMCL 缓冲
   EmmFrame f;
   f.u8(_addr);
   f.u8(sys_param_code(s));
@@ -1224,7 +1224,7 @@ bool DeviceEmmV5::scan_in_position(const uint8_t *buf, int n)
 }
 
 /**
- * @brief 在流缓冲区基础上做滑动窗口装配（2.9）
+ * @brief 在流缓冲区基础上做滑动窗口装配
  * @note 只有真正凑齐完整 4 字节帧（addr + FD 9F 6B）才判定命中；
  *       命中后正确清空窗口，并记录该帧的相对到达时间。
  */
@@ -1321,7 +1321,7 @@ void DeviceEmmV5::rx_task_entry(void *arg)
     Status s = m->receive_raw(buf, sizeof(buf), &n, portMAX_DELAY);
     m->restart_rx(); // ISR 只停 DMA 不重启，由任务重启
 
-    // 2.9：基于流缓冲区的滑动窗口装配，真正收到完整帧才命中
+    // 基于流缓冲区的滑动窗口装配，真正收到完整帧才命中
     if (s == Status::OK && n > 0 && m->feed_rx(buf, n) && m->_in_pos_sem != nullptr)
     {
       xSemaphoreGive(m->_in_pos_sem); // 电机到位

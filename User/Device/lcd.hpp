@@ -1,23 +1,24 @@
 /**
  * @file lcd.hpp
  * @author Rh
- * @brief LCD 驱动 —— 纯 C++ 类（2.8：不保留任何 C 层，LCD_* 全局函数全部消失）
+ * @brief LCD 驱动 —— 纯 C++ 类
  * @version 0.1
  * @date 2026-08-13
  *
  * @copyright Copyright (c) 2026
  *
- * @details 由原 lcd.c / lcd.h / lcdfont.h 重构而来：
- *          - 全部函数收敛进 Lcd 类，业务层只允许通过全局实例 lcd 访问；
- *          - 字库数据移入 namespace lcd_font（lcd_font.hpp），仅 lcd.cpp 使用；
- *          - 常量（宽高、颜色）收敛为类静态常量 / 枚举。
+ * @note 实例化与初始化
+ *
+ *       // device_cfg.cpp 全局实例化
+ *       Lcd lcd;
+ *       // device_init() 中初始化（复位、背光、寄存器配置）
+ *       lcd.init();
  *
  * @note 使用示例：
- * @code
- *   lcd.init();
+ *
  *   lcd.fill(0, 0, Lcd::WIDTH, Lcd::HEIGHT, Lcd::BLACK);
  *   lcd.show_string(88, 10, "TASK_1", Lcd::WHITE, Lcd::BLACK, 24, 1);
- * @endcode
+ *
  */
 
 #ifndef __LCD_HPP__

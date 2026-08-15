@@ -13,7 +13,7 @@
 #ifndef __LCD_FONT_HPP__
 #define __LCD_FONT_HPP__
 
-///< 字库数据（2.8：收敛为 C++ 命名空间内的纯数据，无任何 C 函数）
+///< 字库数据（纯数据，无函数）
 namespace lcd_font
 {
 

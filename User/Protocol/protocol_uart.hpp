@@ -1,7 +1,7 @@
 /**
  * @file protocol_uart.hpp
  * @author Rh
- * @brief 串口协议解析头文件
+ * @brief 串口协议解析头文件，半成品
  * @version 0.1
  * @date 2026-02-17
  *
@@ -12,6 +12,7 @@
  * @details 基于bsp_usart的串口协议解析，支持帧头帧尾自定义，但是没写很好的处理
  *
  * @note 使用示例：
+ *
  *       - 先实例化bsp_uart（在bsp文件中）
  *       - 全局类对象实例化：ProtocolUart protocol_uart_1({bsp_uart1, 1});
  *       - 初始化协议：protocol_uart_1.init();

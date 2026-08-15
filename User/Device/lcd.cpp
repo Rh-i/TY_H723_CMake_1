@@ -4,7 +4,7 @@
 #include "main.h"       // GPIO 引脚宏
 #include "spi.h"        // hspi1
 
-/* ==================== 编译期配置（原 lcd.h 宏） ==================== */
+/* ==================== 编译期配置 ==================== */
 
 ///< 0/1 = 竖屏，2/3 = 横屏（文件内静态配置；LCD 无构造参数，屏幕方向如需运行时切换可改 Config 传入）
 static constexpr int k_use_horizontal = 1;
@@ -417,7 +417,7 @@ void Lcd::show_picture(uint16_t x, uint16_t y, uint16_t length, uint16_t width, 
 /* ==================== 初始化 ==================== */
 
 /**
- * @brief 短忙延时（100 万次空循环，约 10ms 量级，具体取决于主频；原 lcd.c 时序）
+ * @brief 短忙延时（100 万次空循环，约 10ms 量级，具体取决于主频）
  */
 static inline void lcd_delay()
 {

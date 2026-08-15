@@ -18,22 +18,21 @@
  *       - RELEASED: 释放确认（消抖后）
  *       - LONG_PRESS: 持续按住超过阈值（只触发一次，释放后重置）
  *
- * @note 纯裸机操作，无系统阻塞、无中断，不依赖 FreeRTOS。
+ * @note 使用示例:
  *
- * 使用示例:
- * @code
  *   // 配置: 低有效, 50ms 轮询 → 100ms 消抖, 1s 长按
  *   BspKey key;
  *   key.init({KEY_GPIO_Port, KEY_Pin, true, 2, 20});
  *
  *   // 在 50ms 周期任务中:
  *   BspKey::Event e = key.poll();
- *   switch (e) {
+ *   switch (e)
+ *   {
  *     case BspKey::Event::PRESSED:    break;
  *     case BspKey::Event::LONG_PRESS: break;
  *     default: break;
  *   }
- * @endcode
+ *
  */
 
 #ifndef __BSP_KEY_HPP__

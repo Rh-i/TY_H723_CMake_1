@@ -12,25 +12,24 @@
  *          协议格式：地址 + 功能码 + [辅助码/数据...] + 校验字节(0x6B)
  *
  * @note 初始化示例
- *       DeviceEmmV5 motor_1({bsp_uart1, 1});  // 地址为1的电机
+ *
+ *       DeviceEmmV5 motor_1({bsp_uart1, 1});     // 地址为1的电机
  *       motor_1.init();                          // 初始化
  *
  * @note 单电机控制示例
- *       motor_1.en_control(true, false);      // 使能电机
- *       motor_1.vel_control(0, 1000, 50, false); // CW, 1000RPM, 加速度50
+ *
+ *       motor_1.en_control(true, false);                 // 使能电机
+ *       motor_1.vel_control(0, 1000, 50, false);         // CW, 1000RPM, 加速度50
  *       motor_1.pos_control(0, 500, 50, 3200, 1, false); // 绝对位置模式
- *       motor_1.stop_now(false);              // 立即停止
+ *       motor_1.stop_now(false);                         // 立即停止
  *
- * @note 多电机命令（MMCL）示例（2.2：缓冲为实例成员，多机命令用同一实例加载）
- *       motor_1.mmcl_clear();                        // 清空本实例 MMCL 缓冲区
- *       motor_1.mmcl_vel_control(0, 500, 50, false);  // 加载电机1速度命令
- *       motor_1.mmcl_vel_control(1, 800, 50, false);  // 加载电机2速度命令
- *       motor_1.send_multi_motor_cmd(0);             // 广播发送缓冲中的命令
+ * @note 多电机命令（MMCL）示例（同一个串口，缓冲为实例成员，多机命令用同一实例加载（不同也行））
  *
- * @note 多机同步示例
- *       motor_1.vel_control(0, 1000, 50, true);   // snF=true 暂存命令
- *       motor_2.vel_control(0, 1000, 50, true);   // snF=true 暂存命令
- *       motor_1.synchronous_motion();             // 触发同步执行
+ *       motor_1.mmcl_clear();                            // 清空本实例 MMCL 缓冲区
+ *       motor_1.mmcl_vel_control(0, 500, 50, false);     // 加载电机1速度命令
+ *       motor_1.mmcl_vel_control(1, 800, 50, false);     // 加载电机2速度命令
+ *       motor_1.send_multi_motor_cmd(0);                 // 广播发送缓冲中的命令
+ *
  */
 
 #ifndef __DEVICE_EMMV5_HPP__
@@ -42,15 +41,6 @@
 #include "semphr.h"
 
 #include "status.hpp" // 统一状态码
-
-
-/* ==================== 外部声明 ==================== */
-
-// 前向声明
-class DeviceEmmV5;
-
-// 用户根据需要在此声明全局实例
-// extern DeviceEmmV5 motor_xxx;
 
 
 /* ==================== 常量定义 ==================== */
@@ -66,7 +56,7 @@ class DeviceEmmV5;
 #define EMMV5_INPOS_MARK3 (0x6B) ///< 到位帧校验字节
 
 
-/* ==================== 无状态帧构建助手（2.4） ==================== */
+/* ==================== 无状态帧构建助手 ==================== */
 
 /**
  * @brief Emm_V5 帧构建助手（无状态，编译期内联，零成本）
@@ -198,7 +188,7 @@ struct EmmV5Data
  * @brief Emm_V5.0 步进闭环电机驱动类
  *
  * @note 通过 bsp_uart 发送控制指令，支持单电机控制和多电机命令。
- *       MMCL 缓冲区为实例成员（2.2），各实例独立缓冲。
+ *       MMCL 缓冲区为实例成员，各实例独立缓冲。
  */
 class DeviceEmmV5
 {
@@ -545,14 +535,14 @@ public:
   /**
    * @brief 发送多电机命令（Y42）（实例方法，使用本实例的 UART 发送）
    *
-   * @note 将本实例 MMCL 缓冲区中积累的所有命令一次性发送（2.2：实例缓冲）。
+   * @note 将本实例 MMCL 缓冲区中积累的所有命令一次性发送。
    *       发送后自动清空缓冲区。
    *
    * @param addr 电机地址（通常使用广播地址0）
    */
   void send_multi_motor_cmd(uint8_t addr);
 
-  ///< 清空多电机命令缓冲区（实例方法，2.2）
+  ///< 清空多电机命令缓冲区（实例方法）
   void mmcl_clear();
 
 
@@ -626,7 +616,7 @@ public:
   bool scan_in_position(const uint8_t *buf, int n);
 
   /**
-   * @brief 在流缓冲区基础上做滑动窗口装配（2.9）
+   * @brief 在流缓冲区基础上做滑动窗口装配
    * @param data 流缓冲区读出的一块数据
    * @param n    有效字节数
    * @return true=凑齐完整到位帧（addr + FD 9F 6B），窗口已清空并记录相对到达时间
@@ -686,13 +676,13 @@ private:
   Status _send_cmd(const uint8_t *cmd, size_t len);
 
   /**
-   * @brief 将命令追加到 MMCL 缓冲区（实例成员，2.2）
+   * @brief 将命令追加到 MMCL 缓冲区（实例成员）
    * @param cmd  命令字节数组
    * @param len  数据长度
    */
   void _mmcl_append(const uint8_t *cmd, size_t len);
 
-  /* ==================== MMCL 成员缓冲区（2.2，改为成员缓冲发送） ==================== */
+  /* ==================== MMCL 成员缓冲区 ==================== */
 
   uint8_t  _mmcl_buf[EMMV5_MMCL_LEN + 5]; ///< 多电机命令缓冲区（实例成员，可容纳完整帧，避免栈上 517B 大数组）
   uint16_t _mmcl_count = 0;               ///< MMCL 缓冲区中当前字节数
@@ -707,7 +697,7 @@ private:
 
   SemaphoreHandle_t _in_pos_sem = nullptr; ///< 到位信号量（device_cfg 绑定）
 
-  /* ==================== 到位帧滑动窗口（2.9，基于流缓冲区） ==================== */
+  /* ==================== 到位帧滑动窗口（基于流缓冲区） ==================== */
 
   uint8_t    _rx_assem[4];         ///< 滑动窗口（仅在流缓冲读出块内装配）
   uint8_t    _rx_assem_len    = 0; ///< 窗口当前有效字节数

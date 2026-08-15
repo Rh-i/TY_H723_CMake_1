@@ -9,18 +9,18 @@
  *
  * @copyright Copyright (c) 2026
  *
- * @details 使用示例：
- *          - 类的实例化及初始化需要在FreeRTOS内核启动后进行
- *
  * @note 实例化与初始化（全局实例 imu_bmi088 在 device_cfg.cpp 中定义）
- *       imu_bmi088.init();                        // 需要在freertos内核开启之后去init
+ *
+ *       imu_bmi088.init();
  *
  * @note CAN接收处理
- *       imu_bmi088.on_can_message(rx_msg); // 类似中断回调
+ *
+ *       imu_bmi088.on_can_message(rx_msg); // 在app_message中的can消息分发中调用
  *
  * @note 数据获取
+ *
  *       imu_bmi088.change_to_active();                     // 主动发送数据
- *       ImuData user_imu_data = imu_bmi088.get_imu_data() // 读取数据
+ *       ImuData user_imu_data = imu_bmi088.get_imu_data()  // 读取数据
  *
  */
 
@@ -32,16 +32,6 @@
 #include "semphr.h"
 
 #include "status.hpp" // 统一状态码
-
-/* USER CODE BEGIN */
-
-/* ==================== 外部声明 ==================== */
-
-// 全局实例 imu_bmi088 在 device_cfg.hpp 中 extern 声明，
-// 在 device_cfg.cpp 中统一实例化。
-
-/* USER CODE END */
-
 
 /* ==================== CAN接口参数定义 ==================== */
 

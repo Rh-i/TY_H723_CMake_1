@@ -13,17 +13,16 @@
  *          计数基频 base_clk = 定时器主频 / (PSC + 1)，TIM12 ≈ 6 MHz。
  *
  * @note 初始化示例（默认配置）：
- *       // 在 bsp_cfg.cpp 中全局实例化
- *       BspBuzzer bsp_buzzer;
  *
- * @note 自定义定时器示例（匿名按序传入）：
  *       // 参数顺序：htim, channel, base_clk, default_freq, default_vol, freq_min, freq_max, short_ms, long_ms, gap_ms
  *       BspBuzzer buzzer2({&htim3, TIM_CHANNEL_1, 1000000UL}); // 1 MHz 基频，其余默认
  *
  * @note 使用示例：
+ *
  *       bsp_buzzer.tone(3000, 50);  // 3kHz, 50% 占空比
  *       vTaskDelay(pdMS_TO_TICKS(500));
  *       bsp_buzzer.off();           // 关闭
+ *
  *       bsp_buzzer.beep(2000, 100); // 2kHz 响 100ms 后自动关闭
  *       bsp_buzzer.beep_pass_short(); // 短鸣（通过提示）
  */

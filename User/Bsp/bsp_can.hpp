@@ -5,7 +5,8 @@
  * @version 0.4
  * @date 2026-05-02
  *
- * @todo 1. 滤波器未处理
+ * @todo 1. 滤波器未处理（可能也不需要处理）
+ *       2. 只实现了一个模式
  *
  * @copyright Copyright (c) 2026
  *
@@ -16,10 +17,10 @@
  *      bsp_can1({&hfdcan1, "CAN1"});
  *      bsp_can1.init();
  *
- * @note 如何使用：
+ * @note 如何使用：（未管理任务级的互斥情况）
  *
  *      uint8_t data[8] = {0x01,0x02...}; // 定义数据内容
- *      bsp_can1.send(0x101,data);        // 存入缓冲区中 自动发送
+ *      bsp_can1.send(0x101,data);        // 存入缓冲区中 自动处理发送
  *
  *      CanRxMsg data1 = {0};             // 定义数据内容
  *      bsp_can1.receive(&data1);         // 从缓冲区取值（自动接收到缓冲区）
