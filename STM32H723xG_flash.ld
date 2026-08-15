@@ -152,6 +152,19 @@ SECTIONS
     . = ALIGN(4);
   } >FLASH
 
+  /* 用户为dma传输配置的内存地址 */
+  .dma_buffer (NOLOAD) :
+  {
+    . = ALIGN(32);
+    _sdma_buffer = .;
+    *(.dma_buffer)
+    *(.dma_buffer*)
+    . = ALIGN(32);
+    _edma_buffer = .;
+  } >RAM_D1
+
+  /* 用户dma相关配置结束 */
+
   /* used by the startup to initialize data */
   _sidata = LOADADDR(.data);
 
