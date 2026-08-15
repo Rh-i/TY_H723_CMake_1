@@ -2,10 +2,10 @@
 #include "semphr.h"
 #include "task.h"
 
-#include "api_main.h"  // IWYU pragma: keep
-#include "bsp_cfg.hpp" // key_user / bsp_uart1
+#include "api_main.h"     // IWYU pragma: keep
+#include "bsp_cfg.hpp"    // key_user / bsp_uart1
 #include "device_cfg.hpp" // lcd
-#include "menu.hpp"    // 菜单模块接口
+#include "menu.hpp"       // 菜单模块接口
 
 /**
  * @brief 菜单任务（由 api_main 的 all_init() 创建）

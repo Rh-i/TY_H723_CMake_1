@@ -22,9 +22,10 @@
 
 
 #include "FreeRTOS.h" // IWYU pragma: keep
-#include "task.h"     // IWYU pragma: keep
 #include "stddef.h"
 #include "stdint.h"
+#include "task.h" // IWYU pragma: keep
+
 
 #include "status.hpp" // 统一状态码
 
@@ -114,16 +115,15 @@ public:
     /**
      * @brief 按序构造配置（参数顺序 = 字段顺序）
      */
-    Config(BspUart<128, 8> &uart, uint8_t name, uint8_t h1 = 0xAA, uint8_t h2 = 0x55, uint8_t t = 0x0C)
-      : uart(uart),
-        name(name),
-        h1(h1),
-        h2(h2),
-        t(t)
+    Config(BspUart<128, 8>& uart, uint8_t name, uint8_t h1 = 0xAA, uint8_t h2 = 0x55, uint8_t t = 0x0C) : uart(uart),
+                                                                                                          name(name),
+                                                                                                          h1(h1),
+                                                                                                          h2(h2),
+                                                                                                          t(t)
     {
     }
 
-    BspUart<128, 8> &uart; ///< 串口实例引用
+    BspUart<128, 8>& uart; ///< 串口实例引用
     uint8_t          name; ///< 实例名称编号
     uint8_t          h1;   ///< 帧头1
     uint8_t          h2;   ///< 帧头2
@@ -134,7 +134,7 @@ public:
    * @brief 构造函数
    * @param cfg 协议配置（串口实例/名称/帧头帧尾，可匿名按序传入）
    */
-  ProtocolUart(const Config &cfg);
+  ProtocolUart(const Config& cfg);
 
 
   /* ==================== 公共接口 ==================== */

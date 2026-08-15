@@ -58,8 +58,8 @@ Status extract_value(const uint8_t* buffer, uint32_t length, uint32_t* offset, T
 }
 } // namespace
 
-DataPack::DataPack(const Config &cfg) :
-  _data(), // 构造函数只做赋值：数组清零
+DataPack::DataPack(const Config& cfg) :
+  _data(),         // 构造函数只做赋值：数组清零
   _data_length(1), // 帧头占 1 字节
   _header(cfg.header),
   _data_source_length(0),
@@ -85,7 +85,7 @@ DataPack::~DataPack()
 void DataPack::clear_data()
 {
   memset(_data, 0, sizeof(_data));
-  _data_length         = 0;
+  _data_length          = 0;
   _data[_data_length++] = _header;
 }
 
@@ -111,10 +111,10 @@ Status DataPack::link_data_entry(void* addr, VarType type)
   return Status::OK;
 }
 
-#define DATA_PACK_LINK_IMPL(_ctype, _vartype)          \
-  Status DataPack::link_data(_ctype* data_source)      \
-  {                                                    \
-    return link_data_entry(data_source, _vartype);     \
+#define DATA_PACK_LINK_IMPL(_ctype, _vartype)      \
+  Status DataPack::link_data(_ctype* data_source)  \
+  {                                                \
+    return link_data_entry(data_source, _vartype); \
   }
 
 DATA_PACK_LINK_IMPL(uint8_t, VarType::UINT8)
@@ -177,7 +177,7 @@ Status DataPack::get_data()
 
   for (uint32_t i = 0; i < _data_source_length; ++i)
   {
-    const VarEntry& entry = _data_source[i];
+    const VarEntry& entry  = _data_source[i];
     Status          status = Status::IO_ERROR;
 
     if (_data_format == DataFormat::STR)

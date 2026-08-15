@@ -1,10 +1,10 @@
 #include "menu.hpp"
 
 #include "FreeRTOS.h" // IWYU pragma: keep
-#include "task.h"
 #include "semphr.h"
+#include "task.h"
 
-#include "api_main.h"    // menu_sem 声明
+#include "api_main.h"     // menu_sem 声明
 #include "bsp_cfg.hpp"    // bsp_buzzer
 #include "device_cfg.hpp" // lcd 全局实例（device_init 中已初始化）
 

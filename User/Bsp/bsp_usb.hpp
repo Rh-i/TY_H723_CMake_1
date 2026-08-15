@@ -1,6 +1,7 @@
 /**
  * @file bsp_usb.hpp
  * @brief TinyUSB 的 BSP 封装接口。
+ * @author ChoseB (ChoseB@cumt.edu.cn)
  *
  * @details
  * 该文件将 USB 设备抽象为一个类对象，向上层提供：

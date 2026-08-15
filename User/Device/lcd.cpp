@@ -1,8 +1,8 @@
 #include "lcd.hpp"
 
 #include "lcd_font.hpp" // 字库数据（namespace lcd_font）
-#include "main.h"      // GPIO 引脚宏
-#include "spi.h"       // hspi1
+#include "main.h"       // GPIO 引脚宏
+#include "spi.h"        // hspi1
 
 /* ==================== 编译期配置（原 lcd.h 宏） ==================== */
 

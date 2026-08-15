@@ -11,7 +11,7 @@
  * @brief 构造函数
  * @param cfg IMU 配置（CAN 接口/设备ID/主机ID，可匿名按序传入）
  */
-DmImu::DmImu(const Config &cfg)
+DmImu::DmImu(const Config& cfg)
 
   : _can_bus(cfg.can_bus),
     _device_id(cfg.device_id),
@@ -258,7 +258,6 @@ void DmImu::set_imu_data(const ImuData& data)
   {
     xSemaphoreGive(_data_mutex_handle);
   }
-
 }
 
 
@@ -326,7 +325,6 @@ void DmImu::update_euler(const uint8_t (&data)[8])
   {
     xSemaphoreGive(_data_mutex_handle);
   }
-
 }
 
 
@@ -356,7 +354,6 @@ void DmImu::update_quaternion(const uint8_t (&data)[8])
   {
     xSemaphoreGive(_data_mutex_handle);
   }
-
 }
 
 

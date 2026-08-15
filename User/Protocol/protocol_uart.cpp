@@ -1,10 +1,9 @@
 #include "protocol_uart.hpp"
 #include "bsp_cfg.hpp"
 #include "FreeRTOS.h" // IWYU pragma: keep
-#include "task.h"
 #include "string.h"
+#include "task.h"
 #include <stdio.h>
-
 
 
 /* USER CODE BEGIN */
@@ -129,7 +128,7 @@ void uart_protocol_task_entry(void* argument)
  *
  * @param cfg 协议配置（串口实例/名称/帧头帧尾，可匿名按序传入）
  */
-ProtocolUart::ProtocolUart(const Config &cfg)
+ProtocolUart::ProtocolUart(const Config& cfg)
 
   : _uart_instance(cfg.uart),
     _header1(cfg.h1),
@@ -138,7 +137,7 @@ ProtocolUart::ProtocolUart(const Config &cfg)
 {
   // 构造函数只做赋值；任务名生成等运行时逻辑推迟到 init()
   _instance_name = cfg.name;
-  _stack_size    = 512 * 4; /* 从256*4增加到512*4 */
+  _stack_size    = 512 * 4;              /* 从256*4增加到512*4 */
   _priority      = tskIDLE_PRIORITY + 1; /* 任务优先级，普通优先级 */
 }
 

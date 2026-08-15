@@ -3,8 +3,7 @@
 
 /* ==================== 构造与初始化 ==================== */
 
-BspBuzzer::BspBuzzer(const Config &cfg)
-  : _config(cfg)
+BspBuzzer::BspBuzzer(const Config &cfg) : _config(cfg)
 {
 }
 
@@ -27,13 +26,18 @@ void BspBuzzer::init(const Config &cfg)
  */
 void BspBuzzer::tone(uint32_t freq_hz, uint32_t volume_pct)
 {
-  if (freq_hz < _config.freq_min) freq_hz = _config.freq_min;
-  if (freq_hz > _config.freq_max) freq_hz = _config.freq_max;
-  if (volume_pct > 100) volume_pct = 100;
+  if (freq_hz < _config.freq_min)
+    freq_hz = _config.freq_min;
+  if (freq_hz > _config.freq_max)
+    freq_hz = _config.freq_max;
+  if (volume_pct > 100)
+    volume_pct = 100;
 
   uint32_t arr = (_config.base_clk / freq_hz) - 1;
-  if (arr < 10) arr = 10;     // 防 0/过小（避免产生超出可听范围的怪声）
-  if (arr > 65535) arr = 65535; // 16 位 ARR 寄存器硬件上限
+  if (arr < 10)
+    arr = 10; // 防 0/过小（避免产生超出可听范围的怪声）
+  if (arr > 65535)
+    arr = 65535; // 16 位 ARR 寄存器硬件上限
 
   set_arr_and_ccr(arr, volume_pct);
   HAL_TIM_PWM_Start(_config.htim, _config.channel);

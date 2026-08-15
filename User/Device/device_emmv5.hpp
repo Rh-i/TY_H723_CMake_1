@@ -55,15 +55,15 @@ class DeviceEmmV5;
 
 /* ==================== 常量定义 ==================== */
 
-#define EMMV5_MMCL_LEN    (512)    ///< 多电机命令缓冲区大小（字节）
-#define EMMV5_CHECKSUM    (0x6B)   ///< 固定校验字节
-#define EMMV5_BROADCAST   (0x00)   ///< 广播地址
+#define EMMV5_MMCL_LEN (512)   ///< 多电机命令缓冲区大小（字节）
+#define EMMV5_CHECKSUM (0x6B)  ///< 固定校验字节
+#define EMMV5_BROADCAST (0x00) ///< 广播地址
 
 /* ==================== 到位返回帧特征 ==================== */
 
-#define EMMV5_INPOS_MARK1 (0xFD)   ///< 到位帧第 2 字节
-#define EMMV5_INPOS_MARK2 (0x9F)   ///< 到位帧第 3 字节
-#define EMMV5_INPOS_MARK3 (0x6B)   ///< 到位帧校验字节
+#define EMMV5_INPOS_MARK1 (0xFD) ///< 到位帧第 2 字节
+#define EMMV5_INPOS_MARK2 (0x9F) ///< 到位帧第 3 字节
+#define EMMV5_INPOS_MARK3 (0x6B) ///< 到位帧校验字节
 
 
 /* ==================== 无状态帧构建助手（2.4） ==================== */
@@ -86,7 +86,8 @@ struct EmmFrame
   ///< 写入 1 字节（超界保护）
   void u8(uint8_t v)
   {
-    if (len < sizeof(buf)) buf[len++] = v;
+    if (len < sizeof(buf))
+      buf[len++] = v;
   }
 
   ///< 写入 2 字节（大端）
@@ -122,24 +123,24 @@ struct EmmFrame
  */
 enum class EmmSysParam
 {
-  S_VBUS  = 5,   ///< 读取总线电压
-  S_CBUS  = 6,   ///< 读取总线电流
-  S_CPHA  = 7,   ///< 读取相电流
-  S_ENCO  = 8,   ///< 读取编码器原始值
-  S_CLKC  = 9,   ///< 读取实时脉冲数
-  S_ENCL  = 10,  ///< 读取经过线性化校准后的编码器值
-  S_CLKI  = 11,  ///< 读取输入脉冲数
-  S_TPOS  = 12,  ///< 读取电机目标位置
-  S_SPOS  = 13,  ///< 读取电机实时设定的目标位置
-  S_VEL   = 14,  ///< 读取电机实时转速
-  S_CPOS  = 15,  ///< 读取电机实时位置
-  S_PERR  = 16,  ///< 读取电机位置误差
-  S_VBAT  = 17,  ///< 读取多圈编码器电池电压（Y42）
-  S_TEMP  = 18,  ///< 读取电机实时温度（Y42）
-  S_FLAG  = 19,  ///< 读取电机状态标志位
-  S_OFLAG = 20,  ///< 读取回零状态标志位
-  S_OAF   = 21,  ///< 读取电机状态标志位 + 回零状态标志位（Y42）
-  S_PIN   = 22,  ///< 读取引脚状态（Y42）
+  S_VBUS  = 5,  ///< 读取总线电压
+  S_CBUS  = 6,  ///< 读取总线电流
+  S_CPHA  = 7,  ///< 读取相电流
+  S_ENCO  = 8,  ///< 读取编码器原始值
+  S_CLKC  = 9,  ///< 读取实时脉冲数
+  S_ENCL  = 10, ///< 读取经过线性化校准后的编码器值
+  S_CLKI  = 11, ///< 读取输入脉冲数
+  S_TPOS  = 12, ///< 读取电机目标位置
+  S_SPOS  = 13, ///< 读取电机实时设定的目标位置
+  S_VEL   = 14, ///< 读取电机实时转速
+  S_CPOS  = 15, ///< 读取电机实时位置
+  S_PERR  = 16, ///< 读取电机位置误差
+  S_VBAT  = 17, ///< 读取多圈编码器电池电压（Y42）
+  S_TEMP  = 18, ///< 读取电机实时温度（Y42）
+  S_FLAG  = 19, ///< 读取电机状态标志位
+  S_OFLAG = 20, ///< 读取回零状态标志位
+  S_OAF   = 21, ///< 读取电机状态标志位 + 回零状态标志位（Y42）
+  S_PIN   = 22, ///< 读取引脚状态（Y42）
 };
 
 
@@ -173,23 +174,23 @@ enum class EmmOriginMode
  */
 struct EmmV5Data
 {
-  int32_t  encoder_raw   = 0;  ///< 编码器原始值
-  int32_t  encoder_cal   = 0;  ///< 线性化校准后的编码器值
-  int32_t  pulse_count   = 0;  ///< 实时脉冲数
-  int32_t  input_pulse   = 0;  ///< 输入脉冲数
-  int32_t  target_pos    = 0;  ///< 电机目标位置
-  int32_t  set_pos       = 0;  ///< 电机实时设定的目标位置
-  int32_t  cur_pos       = 0;  ///< 电机实时位置
-  int32_t  pos_error     = 0;  ///< 电机位置误差
-  int16_t  speed         = 0;  ///< 电机实时转速（RPM）
-  uint16_t bus_voltage   = 0;  ///< 总线电压（mV）
-  uint16_t bus_current   = 0;  ///< 总线电流（mA）
-  uint16_t phase_current = 0;  ///< 相电流（mA）
-  uint16_t battery_volt  = 0;  ///< 多圈编码器电池电压（mV, Y42）
-  uint8_t  temperature   = 0;  ///< 电机实时温度（℃, Y42）
-  uint8_t  status_flag   = 0;  ///< 电机状态标志位
-  uint8_t  origin_flag   = 0;  ///< 回零状态标志位
-  uint8_t  pin_status    = 0;  ///< 引脚状态（Y42）
+  int32_t  encoder_raw   = 0; ///< 编码器原始值
+  int32_t  encoder_cal   = 0; ///< 线性化校准后的编码器值
+  int32_t  pulse_count   = 0; ///< 实时脉冲数
+  int32_t  input_pulse   = 0; ///< 输入脉冲数
+  int32_t  target_pos    = 0; ///< 电机目标位置
+  int32_t  set_pos       = 0; ///< 电机实时设定的目标位置
+  int32_t  cur_pos       = 0; ///< 电机实时位置
+  int32_t  pos_error     = 0; ///< 电机位置误差
+  int16_t  speed         = 0; ///< 电机实时转速（RPM）
+  uint16_t bus_voltage   = 0; ///< 总线电压（mV）
+  uint16_t bus_current   = 0; ///< 总线电流（mA）
+  uint16_t phase_current = 0; ///< 相电流（mA）
+  uint16_t battery_volt  = 0; ///< 多圈编码器电池电压（mV, Y42）
+  uint8_t  temperature   = 0; ///< 电机实时温度（℃, Y42）
+  uint8_t  status_flag   = 0; ///< 电机状态标志位
+  uint8_t  origin_flag   = 0; ///< 回零状态标志位
+  uint8_t  pin_status    = 0; ///< 引脚状态（Y42）
 };
 
 
@@ -212,9 +213,8 @@ public:
     /**
      * @brief 按序构造配置（参数顺序 = 字段顺序）
      */
-    Config(BspUart<128, 8> &uart, uint8_t addr = 0)
-      : uart(uart),
-        addr(addr)
+    Config(BspUart<128, 8> &uart, uint8_t addr = 0) : uart(uart),
+                                                      addr(addr)
     {
     }
 
@@ -350,8 +350,7 @@ public:
    * @param sl_ms  碰撞回零检测时间（ms）
    * @param potF   上电自动触发回零
    */
-  void origin_modify_params(bool svF, uint8_t o_mode, uint8_t o_dir, uint16_t o_vel,
-                            uint32_t o_tm, uint16_t sl_vel, uint16_t sl_ma, uint16_t sl_ms, bool potF);
+  void origin_modify_params(bool svF, uint8_t o_mode, uint8_t o_dir, uint16_t o_vel, uint32_t o_tm, uint16_t sl_vel, uint16_t sl_ma, uint16_t sl_ms, bool potF);
 
   ///< 读取碰撞回零返回角度（X42S/Y42）
   void origin_read_sl_rp();
@@ -487,8 +486,7 @@ public:
    * @param vel_step 双通道速度步长
    * @param pos_step 双通道运动步长
    */
-  void modify_dmx512_params(bool svF, uint16_t tch, uint8_t nch, uint8_t mode,
-                            uint16_t vel, uint16_t acc, uint16_t vel_step, uint32_t pos_step);
+  void modify_dmx512_params(bool svF, uint16_t tch, uint8_t nch, uint8_t mode, uint16_t vel, uint16_t acc, uint16_t vel_step, uint32_t pos_step);
 
   ///< 读取位置到达窗口（Y42）
   void read_pos_window();
@@ -581,8 +579,7 @@ public:
   void mmcl_origin_set_o(bool svF);
   void mmcl_origin_trigger_return(uint8_t o_mode, bool snF = false);
   void mmcl_origin_interrupt();
-  void mmcl_origin_modify_params(bool svF, uint8_t o_mode, uint8_t o_dir, uint16_t o_vel,
-                                 uint32_t o_tm, uint16_t sl_vel, uint16_t sl_ma, uint16_t sl_ms, bool potF);
+  void mmcl_origin_modify_params(bool svF, uint8_t o_mode, uint8_t o_dir, uint16_t o_vel, uint32_t o_tm, uint16_t sl_vel, uint16_t sl_ma, uint16_t sl_ms, bool potF);
   void mmcl_origin_read_sl_rp();
   void mmcl_origin_modify_sl_rp(bool svF, uint16_t sl_rp);
 
@@ -656,7 +653,7 @@ public:
 
   /* ==================== 静态注册表 / 统一到位接收任务 ==================== */
 
-  static constexpr size_t MAX_INSTANCES = 10;   ///< 最大实例数
+  static constexpr size_t MAX_INSTANCES = 10; ///< 最大实例数
 
   ///< 当前已注册实例数
   static size_t instance_count();
@@ -673,8 +670,8 @@ public:
 
   /* ==================== 成员变量 ==================== */
 
-  BspUart<128, 8>& _uart;    ///< bsp_uart 实例引用
-  uint8_t          _addr;    ///< 电机地址
+  BspUart<128, 8> &_uart; ///< bsp_uart 实例引用
+  uint8_t          _addr; ///< 电机地址
 
 
 private:
@@ -704,16 +701,16 @@ private:
 
   static DeviceEmmV5 *_instances[MAX_INSTANCES]; ///< 实例注册表
   static size_t       _instance_count;           ///< 已注册实例数
-  Status register_instance();                    ///< 构造时注册到注册表
+  Status              register_instance();       ///< 构造时注册到注册表
 
   /* ==================== 到位信号量 ==================== */
 
-  SemaphoreHandle_t _in_pos_sem = nullptr;       ///< 到位信号量（device_cfg 绑定）
+  SemaphoreHandle_t _in_pos_sem = nullptr; ///< 到位信号量（device_cfg 绑定）
 
   /* ==================== 到位帧滑动窗口（2.9，基于流缓冲区） ==================== */
 
   uint8_t    _rx_assem[4];         ///< 滑动窗口（仅在流缓冲读出块内装配）
-  uint8_t    _rx_assem_len = 0;    ///< 窗口当前有效字节数
+  uint8_t    _rx_assem_len    = 0; ///< 窗口当前有效字节数
   TickType_t _last_inpos_tick = 0; ///< 最近一次完整到位帧的相对到达时间（ticks）
 };
 

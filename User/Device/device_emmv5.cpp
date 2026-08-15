@@ -1,15 +1,15 @@
 #include "device_emmv5.hpp"
 
-#include "task.h"    // xTaskCreate
-#include "semphr.h"  // xSemaphoreGive
-#include <stdio.h>   // snprintf
-#include <string.h>  // memmove
+#include "semphr.h" // xSemaphoreGive
+#include "task.h"   // xTaskCreate
+#include <stdio.h>  // snprintf
+#include <string.h> // memmove
 
 
 /* ==================== 静态成员初始化 ==================== */
 
-DeviceEmmV5*      DeviceEmmV5::_instances[DeviceEmmV5::MAX_INSTANCES] = {};
-size_t            DeviceEmmV5::_instance_count = 0;
+DeviceEmmV5 *DeviceEmmV5::_instances[DeviceEmmV5::MAX_INSTANCES] = {};
+size_t       DeviceEmmV5::_instance_count                        = 0;
 
 
 /* ==================== 系统参数表（2.3：表驱动，收敛 4 份 switch） ==================== */
@@ -21,11 +21,24 @@ struct SysParamDef
 };
 
 static const SysParamDef k_sys_params[] = {
-    {EmmSysParam::S_VBUS, 0x24}, {EmmSysParam::S_CBUS, 0x26}, {EmmSysParam::S_CPHA, 0x27}, {EmmSysParam::S_ENCO, 0x29},
-    {EmmSysParam::S_CLKC, 0x30}, {EmmSysParam::S_ENCL, 0x31}, {EmmSysParam::S_CLKI, 0x32}, {EmmSysParam::S_TPOS, 0x33},
-    {EmmSysParam::S_SPOS, 0x34}, {EmmSysParam::S_VEL, 0x35},  {EmmSysParam::S_CPOS, 0x36}, {EmmSysParam::S_PERR, 0x37},
-    {EmmSysParam::S_VBAT, 0x38}, {EmmSysParam::S_TEMP, 0x39}, {EmmSysParam::S_FLAG, 0x3A}, {EmmSysParam::S_OFLAG, 0x3B},
-    {EmmSysParam::S_OAF, 0x3C},  {EmmSysParam::S_PIN, 0x3D},
+  {EmmSysParam::S_VBUS, 0x24},
+  {EmmSysParam::S_CBUS, 0x26},
+  {EmmSysParam::S_CPHA, 0x27},
+  {EmmSysParam::S_ENCO, 0x29},
+  {EmmSysParam::S_CLKC, 0x30},
+  {EmmSysParam::S_ENCL, 0x31},
+  {EmmSysParam::S_CLKI, 0x32},
+  {EmmSysParam::S_TPOS, 0x33},
+  {EmmSysParam::S_SPOS, 0x34},
+  {EmmSysParam::S_VEL, 0x35},
+  {EmmSysParam::S_CPOS, 0x36},
+  {EmmSysParam::S_PERR, 0x37},
+  {EmmSysParam::S_VBAT, 0x38},
+  {EmmSysParam::S_TEMP, 0x39},
+  {EmmSysParam::S_FLAG, 0x3A},
+  {EmmSysParam::S_OFLAG, 0x3B},
+  {EmmSysParam::S_OAF, 0x3C},
+  {EmmSysParam::S_PIN, 0x3D},
 };
 
 /**
@@ -121,7 +134,10 @@ void DeviceEmmV5::_mmcl_append(const uint8_t *cmd, size_t len)
 void DeviceEmmV5::trig_encoder_cal()
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x06); f.u8(0x45); f.finish();
+  f.u8(_addr);
+  f.u8(0x06);
+  f.u8(0x45);
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -132,7 +148,10 @@ void DeviceEmmV5::trig_encoder_cal()
 void DeviceEmmV5::reset_motor()
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x08); f.u8(0x97); f.finish();
+  f.u8(_addr);
+  f.u8(0x08);
+  f.u8(0x97);
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -143,7 +162,10 @@ void DeviceEmmV5::reset_motor()
 void DeviceEmmV5::reset_curpos_to_zero()
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x0A); f.u8(0x6D); f.finish();
+  f.u8(_addr);
+  f.u8(0x0A);
+  f.u8(0x6D);
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -154,7 +176,10 @@ void DeviceEmmV5::reset_curpos_to_zero()
 void DeviceEmmV5::reset_clog_pro()
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x0E); f.u8(0x52); f.finish();
+  f.u8(_addr);
+  f.u8(0x0E);
+  f.u8(0x52);
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -165,7 +190,10 @@ void DeviceEmmV5::reset_clog_pro()
 void DeviceEmmV5::restore_motor()
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x0F); f.u8(0x5F); f.finish();
+  f.u8(_addr);
+  f.u8(0x0F);
+  f.u8(0x5F);
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -180,8 +208,12 @@ void DeviceEmmV5::restore_motor()
 void DeviceEmmV5::en_control(bool state, bool snF)
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0xF3); f.u8(0xAB); f.u8(static_cast<uint8_t>(state));
-  f.u8(static_cast<uint8_t>(snF)); f.finish();
+  f.u8(_addr);
+  f.u8(0xF3);
+  f.u8(0xAB);
+  f.u8(static_cast<uint8_t>(state));
+  f.u8(static_cast<uint8_t>(snF));
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -196,8 +228,13 @@ void DeviceEmmV5::en_control(bool state, bool snF)
 void DeviceEmmV5::vel_control(uint8_t dir, uint16_t vel, uint8_t acc, bool snF)
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0xF6); f.u8(dir); f.u16(vel); f.u8(acc);
-  f.u8(static_cast<uint8_t>(snF)); f.finish();
+  f.u8(_addr);
+  f.u8(0xF6);
+  f.u8(dir);
+  f.u16(vel);
+  f.u8(acc);
+  f.u8(static_cast<uint8_t>(snF));
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -214,8 +251,15 @@ void DeviceEmmV5::vel_control(uint8_t dir, uint16_t vel, uint8_t acc, bool snF)
 void DeviceEmmV5::pos_control(uint8_t dir, uint16_t vel, uint8_t acc, uint32_t clk, uint8_t raF, bool snF)
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0xFD); f.u8(dir); f.u16(vel); f.u8(acc); f.u32(clk);
-  f.u8(raF); f.u8(static_cast<uint8_t>(snF)); f.finish();
+  f.u8(_addr);
+  f.u8(0xFD);
+  f.u8(dir);
+  f.u16(vel);
+  f.u8(acc);
+  f.u32(clk);
+  f.u8(raF);
+  f.u8(static_cast<uint8_t>(snF));
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -230,8 +274,13 @@ void DeviceEmmV5::pos_control(uint8_t dir, uint16_t vel, uint8_t acc, uint32_t c
 void DeviceEmmV5::set_qpos_params(uint16_t vel, uint8_t acc, uint8_t raF, bool snF)
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0xF1); f.u16(vel); f.u8(acc); f.u8(raF);
-  f.u8(static_cast<uint8_t>(snF)); f.finish();
+  f.u8(_addr);
+  f.u8(0xF1);
+  f.u16(vel);
+  f.u8(acc);
+  f.u8(raF);
+  f.u8(static_cast<uint8_t>(snF));
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -243,7 +292,10 @@ void DeviceEmmV5::set_qpos_params(uint16_t vel, uint8_t acc, uint8_t raF, bool s
 void DeviceEmmV5::qpos_control(int32_t clk)
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0xFC); f.u32(static_cast<uint32_t>(clk)); f.finish();
+  f.u8(_addr);
+  f.u8(0xFC);
+  f.u32(static_cast<uint32_t>(clk));
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -255,7 +307,11 @@ void DeviceEmmV5::qpos_control(int32_t clk)
 void DeviceEmmV5::stop_now(bool snF)
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0xFE); f.u8(0x98); f.u8(static_cast<uint8_t>(snF)); f.finish();
+  f.u8(_addr);
+  f.u8(0xFE);
+  f.u8(0x98);
+  f.u8(static_cast<uint8_t>(snF));
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -266,7 +322,10 @@ void DeviceEmmV5::stop_now(bool snF)
 void DeviceEmmV5::synchronous_motion()
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0xFF); f.u8(0x66); f.finish();
+  f.u8(_addr);
+  f.u8(0xFF);
+  f.u8(0x66);
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -280,7 +339,11 @@ void DeviceEmmV5::synchronous_motion()
 void DeviceEmmV5::origin_set_o(bool svF)
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x93); f.u8(0x88); f.u8(static_cast<uint8_t>(svF)); f.finish();
+  f.u8(_addr);
+  f.u8(0x93);
+  f.u8(0x88);
+  f.u8(static_cast<uint8_t>(svF));
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -293,7 +356,11 @@ void DeviceEmmV5::origin_set_o(bool svF)
 void DeviceEmmV5::origin_trigger_return(uint8_t o_mode, bool snF)
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x9A); f.u8(o_mode); f.u8(static_cast<uint8_t>(snF)); f.finish();
+  f.u8(_addr);
+  f.u8(0x9A);
+  f.u8(o_mode);
+  f.u8(static_cast<uint8_t>(snF));
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -304,7 +371,10 @@ void DeviceEmmV5::origin_trigger_return(uint8_t o_mode, bool snF)
 void DeviceEmmV5::origin_interrupt()
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x9C); f.u8(0x48); f.finish();
+  f.u8(_addr);
+  f.u8(0x9C);
+  f.u8(0x48);
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -315,7 +385,9 @@ void DeviceEmmV5::origin_interrupt()
 void DeviceEmmV5::origin_read_params()
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x22); f.finish();
+  f.u8(_addr);
+  f.u8(0x22);
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -323,12 +395,22 @@ void DeviceEmmV5::origin_read_params()
 /**
  * @brief 修改回零参数
  */
-void DeviceEmmV5::origin_modify_params(bool svF, uint8_t o_mode, uint8_t o_dir, uint16_t o_vel,
-                                       uint32_t o_tm, uint16_t sl_vel, uint16_t sl_ma, uint16_t sl_ms, bool potF)
+void DeviceEmmV5::origin_modify_params(bool svF, uint8_t o_mode, uint8_t o_dir, uint16_t o_vel, uint32_t o_tm, uint16_t sl_vel, uint16_t sl_ma, uint16_t sl_ms, bool potF)
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x4C); f.u8(0xAE); f.u8(static_cast<uint8_t>(svF)); f.u8(o_mode); f.u8(o_dir);
-  f.u16(o_vel); f.u32(o_tm); f.u16(sl_vel); f.u16(sl_ma); f.u16(sl_ms); f.u8(static_cast<uint8_t>(potF)); f.finish();
+  f.u8(_addr);
+  f.u8(0x4C);
+  f.u8(0xAE);
+  f.u8(static_cast<uint8_t>(svF));
+  f.u8(o_mode);
+  f.u8(o_dir);
+  f.u16(o_vel);
+  f.u32(o_tm);
+  f.u16(sl_vel);
+  f.u16(sl_ma);
+  f.u16(sl_ms);
+  f.u8(static_cast<uint8_t>(potF));
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -339,7 +421,9 @@ void DeviceEmmV5::origin_modify_params(bool svF, uint8_t o_mode, uint8_t o_dir, 
 void DeviceEmmV5::origin_read_sl_rp()
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x3F); f.finish();
+  f.u8(_addr);
+  f.u8(0x3F);
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -352,7 +436,12 @@ void DeviceEmmV5::origin_read_sl_rp()
 void DeviceEmmV5::origin_modify_sl_rp(bool svF, uint16_t sl_rp)
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x5C); f.u8(0xAC); f.u8(static_cast<uint8_t>(svF)); f.u16(sl_rp); f.finish();
+  f.u8(_addr);
+  f.u8(0x5C);
+  f.u8(0xAC);
+  f.u8(static_cast<uint8_t>(svF));
+  f.u16(sl_rp);
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -412,7 +501,12 @@ Status DeviceEmmV5::receive_raw(uint8_t *buffer, size_t size, size_t *received, 
 void DeviceEmmV5::modify_motor_id(bool svF, uint8_t id)
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0xAE); f.u8(0x4B); f.u8(static_cast<uint8_t>(svF)); f.u8(id); f.finish();
+  f.u8(_addr);
+  f.u8(0xAE);
+  f.u8(0x4B);
+  f.u8(static_cast<uint8_t>(svF));
+  f.u8(id);
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -423,7 +517,12 @@ void DeviceEmmV5::modify_motor_id(bool svF, uint8_t id)
 void DeviceEmmV5::modify_micro_step(bool svF, uint8_t mstep)
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x84); f.u8(0x8A); f.u8(static_cast<uint8_t>(svF)); f.u8(mstep); f.finish();
+  f.u8(_addr);
+  f.u8(0x84);
+  f.u8(0x8A);
+  f.u8(static_cast<uint8_t>(svF));
+  f.u8(mstep);
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -434,7 +533,10 @@ void DeviceEmmV5::modify_micro_step(bool svF, uint8_t mstep)
 void DeviceEmmV5::modify_pd_flag(bool pdf)
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x50); f.u8(static_cast<uint8_t>(pdf)); f.finish();
+  f.u8(_addr);
+  f.u8(0x50);
+  f.u8(static_cast<uint8_t>(pdf));
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -445,7 +547,9 @@ void DeviceEmmV5::modify_pd_flag(bool pdf)
 void DeviceEmmV5::read_opt_param_sta()
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x1A); f.finish();
+  f.u8(_addr);
+  f.u8(0x1A);
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -455,9 +559,14 @@ void DeviceEmmV5::read_opt_param_sta()
  */
 void DeviceEmmV5::modify_motor_type(bool svF, bool mottype)
 {
-  uint8_t mot_type_val = mottype ? 25 : 50;
+  uint8_t  mot_type_val = mottype ? 25 : 50;
   EmmFrame f;
-  f.u8(_addr); f.u8(0xD7); f.u8(0x35); f.u8(static_cast<uint8_t>(svF)); f.u8(mot_type_val); f.finish();
+  f.u8(_addr);
+  f.u8(0xD7);
+  f.u8(0x35);
+  f.u8(static_cast<uint8_t>(svF));
+  f.u8(mot_type_val);
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -468,7 +577,12 @@ void DeviceEmmV5::modify_motor_type(bool svF, bool mottype)
 void DeviceEmmV5::modify_firmware_type(bool svF, bool fwtype)
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0xD5); f.u8(0x69); f.u8(static_cast<uint8_t>(svF)); f.u8(static_cast<uint8_t>(fwtype)); f.finish();
+  f.u8(_addr);
+  f.u8(0xD5);
+  f.u8(0x69);
+  f.u8(static_cast<uint8_t>(svF));
+  f.u8(static_cast<uint8_t>(fwtype));
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -479,7 +593,12 @@ void DeviceEmmV5::modify_firmware_type(bool svF, bool fwtype)
 void DeviceEmmV5::modify_ctrl_mode(bool svF, bool ctrl_mode)
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x46); f.u8(0x69); f.u8(static_cast<uint8_t>(svF)); f.u8(static_cast<uint8_t>(ctrl_mode)); f.finish();
+  f.u8(_addr);
+  f.u8(0x46);
+  f.u8(0x69);
+  f.u8(static_cast<uint8_t>(svF));
+  f.u8(static_cast<uint8_t>(ctrl_mode));
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -490,7 +609,12 @@ void DeviceEmmV5::modify_ctrl_mode(bool svF, bool ctrl_mode)
 void DeviceEmmV5::modify_motor_dir(bool svF, bool dir)
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0xD4); f.u8(0x60); f.u8(static_cast<uint8_t>(svF)); f.u8(static_cast<uint8_t>(dir)); f.finish();
+  f.u8(_addr);
+  f.u8(0xD4);
+  f.u8(0x60);
+  f.u8(static_cast<uint8_t>(svF));
+  f.u8(static_cast<uint8_t>(dir));
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -501,7 +625,12 @@ void DeviceEmmV5::modify_motor_dir(bool svF, bool dir)
 void DeviceEmmV5::modify_lock_btn(bool svF, bool lockbtn)
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0xD0); f.u8(0xB3); f.u8(static_cast<uint8_t>(svF)); f.u8(static_cast<uint8_t>(lockbtn)); f.finish();
+  f.u8(_addr);
+  f.u8(0xD0);
+  f.u8(0xB3);
+  f.u8(static_cast<uint8_t>(svF));
+  f.u8(static_cast<uint8_t>(lockbtn));
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -512,7 +641,12 @@ void DeviceEmmV5::modify_lock_btn(bool svF, bool lockbtn)
 void DeviceEmmV5::modify_s_vel(bool svF, bool s_vel)
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x4F); f.u8(0x71); f.u8(static_cast<uint8_t>(svF)); f.u8(static_cast<uint8_t>(s_vel)); f.finish();
+  f.u8(_addr);
+  f.u8(0x4F);
+  f.u8(0x71);
+  f.u8(static_cast<uint8_t>(svF));
+  f.u8(static_cast<uint8_t>(s_vel));
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -523,7 +657,12 @@ void DeviceEmmV5::modify_s_vel(bool svF, bool s_vel)
 void DeviceEmmV5::modify_om_ma(bool svF, uint16_t om_ma)
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x44); f.u8(0x33); f.u8(static_cast<uint8_t>(svF)); f.u16(om_ma); f.finish();
+  f.u8(_addr);
+  f.u8(0x44);
+  f.u8(0x33);
+  f.u8(static_cast<uint8_t>(svF));
+  f.u16(om_ma);
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -534,7 +673,12 @@ void DeviceEmmV5::modify_om_ma(bool svF, uint16_t om_ma)
 void DeviceEmmV5::modify_foc_ma(bool svF, uint16_t foc_ma)
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x45); f.u8(0x66); f.u8(static_cast<uint8_t>(svF)); f.u16(foc_ma); f.finish();
+  f.u8(_addr);
+  f.u8(0x45);
+  f.u8(0x66);
+  f.u8(static_cast<uint8_t>(svF));
+  f.u16(foc_ma);
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -545,7 +689,9 @@ void DeviceEmmV5::modify_foc_ma(bool svF, uint16_t foc_ma)
 void DeviceEmmV5::read_pid_params()
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x21); f.finish();
+  f.u8(_addr);
+  f.u8(0x21);
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -556,8 +702,14 @@ void DeviceEmmV5::read_pid_params()
 void DeviceEmmV5::modify_pid_params(bool svF, uint32_t kp, uint32_t ki, uint32_t kd)
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x4A); f.u8(0xC3); f.u8(static_cast<uint8_t>(svF));
-  f.u32(kp); f.u32(ki); f.u32(kd); f.finish();
+  f.u8(_addr);
+  f.u8(0x4A);
+  f.u8(0xC3);
+  f.u8(static_cast<uint8_t>(svF));
+  f.u32(kp);
+  f.u32(ki);
+  f.u32(kd);
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -568,7 +720,10 @@ void DeviceEmmV5::modify_pid_params(bool svF, uint32_t kp, uint32_t ki, uint32_t
 void DeviceEmmV5::read_dmx512_params()
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x49); f.u8(0x78); f.finish();
+  f.u8(_addr);
+  f.u8(0x49);
+  f.u8(0x78);
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -576,12 +731,21 @@ void DeviceEmmV5::read_dmx512_params()
 /**
  * @brief 修改DMX512协议参数（Y42）
  */
-void DeviceEmmV5::modify_dmx512_params(bool svF, uint16_t tch, uint8_t nch, uint8_t mode,
-                                       uint16_t vel, uint16_t acc, uint16_t vel_step, uint32_t pos_step)
+void DeviceEmmV5::modify_dmx512_params(bool svF, uint16_t tch, uint8_t nch, uint8_t mode, uint16_t vel, uint16_t acc, uint16_t vel_step, uint32_t pos_step)
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0xD9); f.u8(0x90); f.u8(static_cast<uint8_t>(svF));
-  f.u16(tch); f.u8(nch); f.u8(mode); f.u16(vel); f.u16(acc); f.u16(vel_step); f.u32(pos_step); f.finish();
+  f.u8(_addr);
+  f.u8(0xD9);
+  f.u8(0x90);
+  f.u8(static_cast<uint8_t>(svF));
+  f.u16(tch);
+  f.u8(nch);
+  f.u8(mode);
+  f.u16(vel);
+  f.u16(acc);
+  f.u16(vel_step);
+  f.u32(pos_step);
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -592,7 +756,9 @@ void DeviceEmmV5::modify_dmx512_params(bool svF, uint16_t tch, uint8_t nch, uint
 void DeviceEmmV5::read_pos_window()
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x41); f.finish();
+  f.u8(_addr);
+  f.u8(0x41);
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -603,7 +769,12 @@ void DeviceEmmV5::read_pos_window()
 void DeviceEmmV5::modify_pos_window(bool svF, uint16_t prw)
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0xD1); f.u8(0x07); f.u8(static_cast<uint8_t>(svF)); f.u16(prw); f.finish();
+  f.u8(_addr);
+  f.u8(0xD1);
+  f.u8(0x07);
+  f.u8(static_cast<uint8_t>(svF));
+  f.u16(prw);
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -614,7 +785,9 @@ void DeviceEmmV5::modify_pos_window(bool svF, uint16_t prw)
 void DeviceEmmV5::read_otocp()
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x13); f.finish();
+  f.u8(_addr);
+  f.u8(0x13);
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -625,8 +798,14 @@ void DeviceEmmV5::read_otocp()
 void DeviceEmmV5::modify_otocp(bool svF, uint16_t otp, uint16_t ocp, uint16_t time_ms)
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0xD3); f.u8(0x56); f.u8(static_cast<uint8_t>(svF));
-  f.u16(otp); f.u16(ocp); f.u16(time_ms); f.finish();
+  f.u8(_addr);
+  f.u8(0xD3);
+  f.u8(0x56);
+  f.u8(static_cast<uint8_t>(svF));
+  f.u16(otp);
+  f.u16(ocp);
+  f.u16(time_ms);
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -637,7 +816,9 @@ void DeviceEmmV5::modify_otocp(bool svF, uint16_t otp, uint16_t ocp, uint16_t ti
 void DeviceEmmV5::read_heart_protect()
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x16); f.finish();
+  f.u8(_addr);
+  f.u8(0x16);
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -648,7 +829,12 @@ void DeviceEmmV5::read_heart_protect()
 void DeviceEmmV5::modify_heart_protect(bool svF, uint32_t hp)
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x68); f.u8(0x38); f.u8(static_cast<uint8_t>(svF)); f.u32(hp); f.finish();
+  f.u8(_addr);
+  f.u8(0x68);
+  f.u8(0x38);
+  f.u8(static_cast<uint8_t>(svF));
+  f.u32(hp);
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -659,7 +845,9 @@ void DeviceEmmV5::modify_heart_protect(bool svF, uint32_t hp)
 void DeviceEmmV5::read_integral_limit()
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x23); f.finish();
+  f.u8(_addr);
+  f.u8(0x23);
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -670,7 +858,12 @@ void DeviceEmmV5::read_integral_limit()
 void DeviceEmmV5::modify_integral_limit(bool svF, uint32_t il)
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x4B); f.u8(0x57); f.u8(static_cast<uint8_t>(svF)); f.u32(il); f.finish();
+  f.u8(_addr);
+  f.u8(0x4B);
+  f.u8(0x57);
+  f.u8(static_cast<uint8_t>(svF));
+  f.u32(il);
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -683,7 +876,10 @@ void DeviceEmmV5::modify_integral_limit(bool svF, uint32_t il)
 void DeviceEmmV5::read_system_state_params()
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x43); f.u8(0x7A); f.finish();
+  f.u8(_addr);
+  f.u8(0x43);
+  f.u8(0x7A);
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -694,7 +890,10 @@ void DeviceEmmV5::read_system_state_params()
 void DeviceEmmV5::read_motor_conf_params()
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x42); f.u8(0x6C); f.finish();
+  f.u8(_addr);
+  f.u8(0x42);
+  f.u8(0x6C);
+  f.finish();
   _send_cmd(f.buf, f.len);
 }
 
@@ -722,10 +921,10 @@ void DeviceEmmV5::send_multi_motor_cmd(uint8_t addr)
   // 2.2：直接在成员缓冲区上构建完整帧，不再在栈上开 517B 大数组
   memmove(_mmcl_buf + 4, _mmcl_buf, _mmcl_count); // MMCL 数据后移 4 字节，腾出头部
 
-  _mmcl_buf[0] = addr;
-  _mmcl_buf[1] = 0xAA;
-  _mmcl_buf[2] = static_cast<uint8_t>(len >> 8);
-  _mmcl_buf[3] = static_cast<uint8_t>(len >> 0);
+  _mmcl_buf[0]               = addr;
+  _mmcl_buf[1]               = 0xAA;
+  _mmcl_buf[2]               = static_cast<uint8_t>(len >> 8);
+  _mmcl_buf[3]               = static_cast<uint8_t>(len >> 0);
   _mmcl_buf[4 + _mmcl_count] = EMMV5_CHECKSUM;
 
   // 通过本实例的 UART 发送
@@ -749,7 +948,10 @@ void DeviceEmmV5::mmcl_clear()
 void DeviceEmmV5::mmcl_trig_encoder_cal()
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x06); f.u8(0x45); f.finish();
+  f.u8(_addr);
+  f.u8(0x06);
+  f.u8(0x45);
+  f.finish();
   _mmcl_append(f.buf, f.len);
 }
 
@@ -757,7 +959,10 @@ void DeviceEmmV5::mmcl_trig_encoder_cal()
 void DeviceEmmV5::mmcl_reset_motor()
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x08); f.u8(0x97); f.finish();
+  f.u8(_addr);
+  f.u8(0x08);
+  f.u8(0x97);
+  f.finish();
   _mmcl_append(f.buf, f.len);
 }
 
@@ -765,7 +970,10 @@ void DeviceEmmV5::mmcl_reset_motor()
 void DeviceEmmV5::mmcl_reset_curpos_to_zero()
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x0A); f.u8(0x6D); f.finish();
+  f.u8(_addr);
+  f.u8(0x0A);
+  f.u8(0x6D);
+  f.finish();
   _mmcl_append(f.buf, f.len);
 }
 
@@ -773,7 +981,10 @@ void DeviceEmmV5::mmcl_reset_curpos_to_zero()
 void DeviceEmmV5::mmcl_reset_clog_pro()
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x0E); f.u8(0x52); f.finish();
+  f.u8(_addr);
+  f.u8(0x0E);
+  f.u8(0x52);
+  f.finish();
   _mmcl_append(f.buf, f.len);
 }
 
@@ -781,7 +992,10 @@ void DeviceEmmV5::mmcl_reset_clog_pro()
 void DeviceEmmV5::mmcl_restore_motor()
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x0F); f.u8(0x5F); f.finish();
+  f.u8(_addr);
+  f.u8(0x0F);
+  f.u8(0x5F);
+  f.finish();
   _mmcl_append(f.buf, f.len);
 }
 
@@ -791,8 +1005,12 @@ void DeviceEmmV5::mmcl_restore_motor()
 void DeviceEmmV5::mmcl_en_control(bool state, bool snF)
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0xF3); f.u8(0xAB); f.u8(static_cast<uint8_t>(state));
-  f.u8(static_cast<uint8_t>(snF)); f.finish();
+  f.u8(_addr);
+  f.u8(0xF3);
+  f.u8(0xAB);
+  f.u8(static_cast<uint8_t>(state));
+  f.u8(static_cast<uint8_t>(snF));
+  f.finish();
   _mmcl_append(f.buf, f.len);
 }
 
@@ -800,8 +1018,13 @@ void DeviceEmmV5::mmcl_en_control(bool state, bool snF)
 void DeviceEmmV5::mmcl_vel_control(uint8_t dir, uint16_t vel, uint8_t acc, bool snF)
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0xF6); f.u8(dir); f.u16(vel); f.u8(acc);
-  f.u8(static_cast<uint8_t>(snF)); f.finish();
+  f.u8(_addr);
+  f.u8(0xF6);
+  f.u8(dir);
+  f.u16(vel);
+  f.u8(acc);
+  f.u8(static_cast<uint8_t>(snF));
+  f.finish();
   _mmcl_append(f.buf, f.len);
 }
 
@@ -809,8 +1032,15 @@ void DeviceEmmV5::mmcl_vel_control(uint8_t dir, uint16_t vel, uint8_t acc, bool 
 void DeviceEmmV5::mmcl_pos_control(uint8_t dir, uint16_t vel, uint8_t acc, uint32_t clk, uint8_t raF, bool snF)
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0xFD); f.u8(dir); f.u16(vel); f.u8(acc); f.u32(clk);
-  f.u8(raF); f.u8(static_cast<uint8_t>(snF)); f.finish();
+  f.u8(_addr);
+  f.u8(0xFD);
+  f.u8(dir);
+  f.u16(vel);
+  f.u8(acc);
+  f.u32(clk);
+  f.u8(raF);
+  f.u8(static_cast<uint8_t>(snF));
+  f.finish();
   _mmcl_append(f.buf, f.len);
 }
 
@@ -818,8 +1048,13 @@ void DeviceEmmV5::mmcl_pos_control(uint8_t dir, uint16_t vel, uint8_t acc, uint3
 void DeviceEmmV5::mmcl_set_qpos_params(uint16_t vel, uint8_t acc, uint8_t raF, bool snF)
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0xF1); f.u16(vel); f.u8(acc); f.u8(raF);
-  f.u8(static_cast<uint8_t>(snF)); f.finish();
+  f.u8(_addr);
+  f.u8(0xF1);
+  f.u16(vel);
+  f.u8(acc);
+  f.u8(raF);
+  f.u8(static_cast<uint8_t>(snF));
+  f.finish();
   _mmcl_append(f.buf, f.len);
 }
 
@@ -827,7 +1062,10 @@ void DeviceEmmV5::mmcl_set_qpos_params(uint16_t vel, uint8_t acc, uint8_t raF, b
 void DeviceEmmV5::mmcl_qpos_control(int32_t clk)
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0xFC); f.u32(static_cast<uint32_t>(clk)); f.finish();
+  f.u8(_addr);
+  f.u8(0xFC);
+  f.u32(static_cast<uint32_t>(clk));
+  f.finish();
   _mmcl_append(f.buf, f.len);
 }
 
@@ -835,7 +1073,11 @@ void DeviceEmmV5::mmcl_qpos_control(int32_t clk)
 void DeviceEmmV5::mmcl_stop_now(bool snF)
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0xFE); f.u8(0x98); f.u8(static_cast<uint8_t>(snF)); f.finish();
+  f.u8(_addr);
+  f.u8(0xFE);
+  f.u8(0x98);
+  f.u8(static_cast<uint8_t>(snF));
+  f.finish();
   _mmcl_append(f.buf, f.len);
 }
 
@@ -843,7 +1085,10 @@ void DeviceEmmV5::mmcl_stop_now(bool snF)
 void DeviceEmmV5::mmcl_synchronous_motion()
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0xFF); f.u8(0x66); f.finish();
+  f.u8(_addr);
+  f.u8(0xFF);
+  f.u8(0x66);
+  f.finish();
   _mmcl_append(f.buf, f.len);
 }
 
@@ -853,7 +1098,11 @@ void DeviceEmmV5::mmcl_synchronous_motion()
 void DeviceEmmV5::mmcl_origin_set_o(bool svF)
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x93); f.u8(0x88); f.u8(static_cast<uint8_t>(svF)); f.finish();
+  f.u8(_addr);
+  f.u8(0x93);
+  f.u8(0x88);
+  f.u8(static_cast<uint8_t>(svF));
+  f.finish();
   _mmcl_append(f.buf, f.len);
 }
 
@@ -861,7 +1110,11 @@ void DeviceEmmV5::mmcl_origin_set_o(bool svF)
 void DeviceEmmV5::mmcl_origin_trigger_return(uint8_t o_mode, bool snF)
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x9A); f.u8(o_mode); f.u8(static_cast<uint8_t>(snF)); f.finish();
+  f.u8(_addr);
+  f.u8(0x9A);
+  f.u8(o_mode);
+  f.u8(static_cast<uint8_t>(snF));
+  f.finish();
   _mmcl_append(f.buf, f.len);
 }
 
@@ -869,17 +1122,30 @@ void DeviceEmmV5::mmcl_origin_trigger_return(uint8_t o_mode, bool snF)
 void DeviceEmmV5::mmcl_origin_interrupt()
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x9C); f.u8(0x48); f.finish();
+  f.u8(_addr);
+  f.u8(0x9C);
+  f.u8(0x48);
+  f.finish();
   _mmcl_append(f.buf, f.len);
 }
 
 
-void DeviceEmmV5::mmcl_origin_modify_params(bool svF, uint8_t o_mode, uint8_t o_dir, uint16_t o_vel,
-                                            uint32_t o_tm, uint16_t sl_vel, uint16_t sl_ma, uint16_t sl_ms, bool potF)
+void DeviceEmmV5::mmcl_origin_modify_params(bool svF, uint8_t o_mode, uint8_t o_dir, uint16_t o_vel, uint32_t o_tm, uint16_t sl_vel, uint16_t sl_ma, uint16_t sl_ms, bool potF)
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x4C); f.u8(0xAE); f.u8(static_cast<uint8_t>(svF)); f.u8(o_mode); f.u8(o_dir);
-  f.u16(o_vel); f.u32(o_tm); f.u16(sl_vel); f.u16(sl_ma); f.u16(sl_ms); f.u8(static_cast<uint8_t>(potF)); f.finish();
+  f.u8(_addr);
+  f.u8(0x4C);
+  f.u8(0xAE);
+  f.u8(static_cast<uint8_t>(svF));
+  f.u8(o_mode);
+  f.u8(o_dir);
+  f.u16(o_vel);
+  f.u32(o_tm);
+  f.u16(sl_vel);
+  f.u16(sl_ma);
+  f.u16(sl_ms);
+  f.u8(static_cast<uint8_t>(potF));
+  f.finish();
   _mmcl_append(f.buf, f.len);
 }
 
@@ -887,7 +1153,9 @@ void DeviceEmmV5::mmcl_origin_modify_params(bool svF, uint8_t o_mode, uint8_t o_
 void DeviceEmmV5::mmcl_origin_read_sl_rp()
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x3F); f.finish();
+  f.u8(_addr);
+  f.u8(0x3F);
+  f.finish();
   _mmcl_append(f.buf, f.len);
 }
 
@@ -895,7 +1163,12 @@ void DeviceEmmV5::mmcl_origin_read_sl_rp()
 void DeviceEmmV5::mmcl_origin_modify_sl_rp(bool svF, uint16_t sl_rp)
 {
   EmmFrame f;
-  f.u8(_addr); f.u8(0x5C); f.u8(0xAC); f.u8(static_cast<uint8_t>(svF)); f.u16(sl_rp); f.finish();
+  f.u8(_addr);
+  f.u8(0x5C);
+  f.u8(0xAC);
+  f.u8(static_cast<uint8_t>(svF));
+  f.u16(sl_rp);
+  f.finish();
   _mmcl_append(f.buf, f.len);
 }
 
@@ -968,13 +1241,9 @@ bool DeviceEmmV5::feed_rx(const uint8_t *data, size_t n)
     _rx_assem[_rx_assem_len++] = data[i];
 
     // 只有真正凑齐完整 4 字节帧才命中（addr + FD 9F 6B）
-    if (_rx_assem_len == 4 &&
-        _rx_assem[0] == _addr &&
-        _rx_assem[1] == EMMV5_INPOS_MARK1 &&
-        _rx_assem[2] == EMMV5_INPOS_MARK2 &&
-        _rx_assem[3] == EMMV5_INPOS_MARK3)
+    if (_rx_assem_len == 4 && _rx_assem[0] == _addr && _rx_assem[1] == EMMV5_INPOS_MARK1 && _rx_assem[2] == EMMV5_INPOS_MARK2 && _rx_assem[3] == EMMV5_INPOS_MARK3)
     {
-      _rx_assem_len = 0;                             // 正确清空窗口
+      _rx_assem_len    = 0;                          // 正确清空窗口
       _last_inpos_tick = xTaskGetTickCountFromISR(); // 记录相对到达时间
       return true;                                   // 命中，给信号量
     }
