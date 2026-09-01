@@ -99,75 +99,11 @@ extern "C" void StartDefaultTask(void *argument)
 {
   (void)argument; // 未使用参数
 
-  constexpr int16_t kTestCurrent = 512; // 512 / 16384 * 20 A = 0.625 A
-  uint8_t           tx_data[8]   = {0}; // 0x200: ID2 位于 DATA[2:3]
-  CanRxMsg          rx_msg       = {};
-  TickType_t        wake_time    = xTaskGetTickCount();
-  const TickType_t  test_start   = wake_time;
-  uint32_t          diagnostic_divider = 0;
-
   printf("Default Task Started\n");
 
   for (;;)
   {
-    const TickType_t elapsed = xTaskGetTickCount() - test_start;
-
-    // 上电 2 秒后仅驱动 ID2 一秒，随后持续发送零电流。
-    const int16_t current = ((elapsed >= pdMS_TO_TICKS(2000)) &&
-                             (elapsed < pdMS_TO_TICKS(3000)))
-                              ? kTestCurrent
-                              : 0;
-    tx_data[2] = static_cast<uint8_t>(static_cast<uint16_t>(current) >> 8);
-    tx_data[3] = static_cast<uint8_t>(current);
-
-    can1_statu = bsp_can1.send(0x200, tx_data);
-    if (can1_statu == Status::OK)
-    {
-      ++can1_tx_ok_count;
-    }
-    else if (can1_statu == Status::FULL)
-    {
-      ++can1_tx_full_count;
-    }
-
-    // C620 ID2 的反馈标识符为 0x202，默认反馈频率为 1 kHz。
-    while (bsp_can1.receive(&rx_msg, 0) == Status::OK)
-    {
-      ++can1_rx_count;
-      can1_last_rx_id = rx_msg.header.Identifier;
-      if (rx_msg.header.Identifier == 0x202U)
-      {
-        ++can1_feedback_202_count;
-        c620_speed_rpm     = static_cast<int16_t>((static_cast<uint16_t>(rx_msg.data[2]) << 8) | rx_msg.data[3]);
-        c620_given_current = static_cast<int16_t>((static_cast<uint16_t>(rx_msg.data[4]) << 8) | rx_msg.data[5]);
-        c620_temperature   = rx_msg.data[6];
-        const int32_t speed = c620_speed_rpm;
-        const uint16_t abs_speed = static_cast<uint16_t>(speed < 0 ? -speed : speed);
-        if (abs_speed > c620_peak_abs_speed_rpm)
-        {
-          c620_peak_abs_speed_rpm = abs_speed;
-        }
-      }
-    }
-
-    // 每 100 ms 保存一次协议状态。LastErrorCode=3 通常表示 ACK error。
-    if (++diagnostic_divider >= 100U)
-    {
-      diagnostic_divider = 0;
-      FDCAN_ProtocolStatusTypeDef protocol_status = {};
-      FDCAN_ErrorCountersTypeDef error_counters = {};
-      if (HAL_FDCAN_GetProtocolStatus(&hfdcan1, &protocol_status) == HAL_OK)
-      {
-        can1_last_error_code = protocol_status.LastErrorCode;
-        can1_bus_off         = protocol_status.BusOff;
-      }
-      if (HAL_FDCAN_GetErrorCounters(&hfdcan1, &error_counters) == HAL_OK)
-      {
-        can1_tx_error_count = error_counters.TxErrorCnt;
-        can1_rx_error_count = error_counters.RxErrorCnt;
-      }
-    }
-
-    vTaskDelayUntil(&wake_time, pdMS_TO_TICKS(1));
+    // 默认任务当前不承载业务逻辑，仅周期让出 CPU，供后续设备服务任务接入。
+    osDelay(1);
   }
 }
