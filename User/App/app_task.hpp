@@ -26,6 +26,20 @@ extern "C"
   void task_menu(void *argument);
 
   /**
+   * @brief 系统级 1 kHz 维护任务，当前负责推进全部 Online 对象的离线计时
+   * @param argument 任务参数（未使用，NULL）
+   * @note 由 all_init() 创建，不应由业务代码直接调用。
+   */
+  void sys_task(void *argument);
+
+  /**
+   * @brief DJI 电机 1 kHz 维护任务，负责 CAN 反馈分发和控制帧发送
+   * @param argument 任务参数（未使用，NULL）
+   * @note 由 all_init() 创建，不应由业务代码直接调用。
+   */
+  void dji_motor_task(void *argument);
+
+  /**
    * @brief 菜单消息测试任务 1（阻塞等待 menu_sem[0] 后经 USART1 发送测试字节）
    * @param arg 任务参数（未使用，NULL）
    */

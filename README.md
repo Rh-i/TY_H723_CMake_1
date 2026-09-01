@@ -176,9 +176,9 @@ cmake --build build/Debug
 
 2026-09-01 已使用 C620（绿色双闪，ID 为 2）和 M3508 完成实机验证：CAN 波特率为 1 Mbps，控制帧标准 ID 为 `0x200`，ID2 的电流指令放在 `DATA[2:3]`（高字节在前），反馈帧标准 ID 为 `0x202`。本次成功连接使用同面线；控制板和电调均需正确供电，CANH/CANL 线序及终端电阻应按硬件说明检查。
 
-当前 `StartDefaultTask` 是低电流短时测试：启动 2 秒后向 ID2 发送原始电流值 512（约 0.625 A），持续 1 秒后永久恢复为零电流。每 1 ms 发送一次，同时接收并解析反馈。复位会再次触发该测试，烧写或复位前必须将电机架空或可靠固定。
+低电流短时测试已移至 `User/App/test/motor/dji_motor_test.cpp`：启动 2 秒后向 ID2 发送原始电流值 512（约 0.625 A），持续 1 秒后恢复为零。测试由 `User/App/app_test.hpp` 中的 `APP_TEST_DJI_MOTOR_ENABLED` 控制；默认值为 `0`，因此正常烧写或复位不会驱动电机。启用测试前必须将电机架空或可靠固定。
 
-本次调试器实测结果为：发送成功 12726 帧、发送队列满 0 次、收到 `0x202` 反馈 12856 帧、峰值转速 3609 rpm，CAN 发送错误计数、接收错误计数和 Bus-Off 均为 0。可在 Live Watch 中查看 `can1_statu`、`can1_tx_ok_count`、`can1_tx_full_count`、`can1_feedback_202_count`、`c620_peak_abs_speed_rpm`、`can1_tx_error_count`、`can1_rx_error_count` 和 `can1_bus_off`。
+基于 `DjiMotor`/`DjiMotorBus` 新框架的实测结果为：测试任务通过，收到并成功分发 `0x202` 反馈 20330 帧、忽略 0 帧，峰值转速 3532 rpm，CAN 发送错误计数、接收错误计数和 Bus-Off 均为 0；测试结束后内部 `0x200` 帧四个输出槽位均为零。可在 Live Watch 中查看 `dji_motor_task_*` 和 `dji_motor_test_*` 诊断量。
 
 若 `can1_statu` 从 `Status::OK` 变为持续 `Status::FULL`，应先检查错误计数和 Bus-Off；本次故障由 CAN 连接线序不正确导致，自动重发最终占满发送 FIFO，而不是任务未执行或软件发送缓冲区本身太小。
 

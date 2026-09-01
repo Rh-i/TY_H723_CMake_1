@@ -17,6 +17,7 @@
 
 /* 任务声明 */
 #include "app_task.hpp"
+#include "app_test.hpp"
 
 
 /* ==================== 全局变量定义 ==================== */
@@ -73,6 +74,10 @@ void all_init()
   /* 初始化协议层 */
   protocol_init();
 
+  /* 系统与 DJI 电机维护任务（均为 1 kHz，DJI 接收/发送优先级更高） */
+  configASSERT(xTaskCreate(sys_task, "sys", 256, NULL, tskIDLE_PRIORITY + 7, NULL) == pdPASS);
+  configASSERT(xTaskCreate(dji_motor_task, "dji_motor", 512, NULL, tskIDLE_PRIORITY + 8, NULL) == pdPASS);
+
   /* 菜单任务（LCD 菜单 + 按键，事件转发给 menu 模块；优先级最高） */
   configASSERT(xTaskCreate(task_menu, "t_menu", 2048, NULL, tskIDLE_PRIORITY + 6, NULL) == pdPASS);
 
@@ -80,6 +85,24 @@ void all_init()
   configASSERT(xTaskCreate(msg_task_task1, "m_tsk1", 256, NULL, tskIDLE_PRIORITY + 4, NULL) == pdPASS);
   configASSERT(xTaskCreate(msg_task_task2, "m_tsk2", 256, NULL, tskIDLE_PRIORITY + 4, NULL) == pdPASS);
   configASSERT(xTaskCreate(msg_task_task3, "m_tsk3", 256, NULL, tskIDLE_PRIORITY + 4, NULL) == pdPASS);
+
+#if APP_TEST_ONLINE_CHECK_ENABLED
+  configASSERT(xTaskCreate(online_check_test_task,
+                           "online_test",
+                           256,
+                           NULL,
+                           tskIDLE_PRIORITY + 3,
+                           NULL) == pdPASS);
+#endif
+
+#if APP_TEST_DJI_MOTOR_ENABLED
+  configASSERT(xTaskCreate(dji_motor_test_task,
+                           "motor_test",
+                           256,
+                           NULL,
+                           tskIDLE_PRIORITY + 5,
+                           NULL) == pdPASS);
+#endif
 
   printf("freertos_init_ok\n");
 }

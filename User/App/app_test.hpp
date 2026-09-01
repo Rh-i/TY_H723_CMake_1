@@ -16,10 +16,31 @@
 #ifndef __APP_TEST_HPP__
 #define __APP_TEST_HPP__
 
+/** @brief 编译并创建 Online 实机自检任务；设为 0 可停用。 */
+#define APP_TEST_ONLINE_CHECK_ENABLED 0
+
+/** @brief 编译并创建 CAN1 ID2 M3508 低电流转动测试；设为 0 可停用。 */
+#define APP_TEST_DJI_MOTOR_ENABLED 0
+
 #ifdef __cplusplus
 extern "C"
 {
 #endif
+
+  /**
+   * @brief Online 状态机自检任务
+   * @param argument 任务参数（未使用，NULL）
+   * @note 仅在 APP_TEST_ONLINE_CHECK_ENABLED 非零时创建。
+   */
+  void online_check_test_task(void *argument);
+
+  /**
+   * @brief CAN1 ID2 M3508 低电流实机测试任务
+   * @param argument 任务参数（未使用，NULL）
+   * @note 仅在 APP_TEST_DJI_MOTOR_ENABLED 非零时创建。
+   * @warning 启用后每次复位都会在启动 2 秒后驱动电机 1 秒，测试时必须架空或固定电机。
+   */
+  void dji_motor_test_task(void *argument);
 
 #ifdef __cplusplus
 }
