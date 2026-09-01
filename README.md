@@ -115,23 +115,72 @@ freertos的硬件支持、usb的硬件支持，外设封装好的支持等等，
 
 ## 如何开发
 
-### 配置：
+### 编译、烧写和调试
 
-1. 需要工程文件和主文件夹名称一样（烧录和调试都是使用的主文件夹名称作为的索引）
-2. 编译烧录调试都使用vscode中的内容，后期可以使用外部调试工具（但是没有keil了）
-3. 调整好各个插件，以及插件配置情况cortex debug、cmake、ninja、arm-gcc、clangd、git等等
+本工程已经配置好 CMake Presets、VS Code Tasks 和 Cortex-Debug。以下 Linux 链路于 **2026-09-01** 在本仓库和实机 STM32H723 上验证通过：
 
-### 使用：
+| 能力 | 状态 | 已验证的链路 |
+| --- | --- | --- |
+| 编译 | 已实测 | CMake 3.22 + Ninja 1.10 + Arm GNU Toolchain 15.3，成功生成 `build/Debug/DM_MC02.elf` |
+| 烧写 | 已实测 | CMSIS-DAPv2 + OpenOCD，经 SWD 完成 program、verify 和 reset，校验结果为 `Verified OK` |
+| 调试 | 已实测 | OpenOCD GDB Server + `arm-none-eabi-gdb`，成功识别 Cortex-M7、连接目标、复位暂停并读取寄存器 |
+| J-Link | 配置存在，当前未实测 | 本机未安装 SEGGER J-Link 软件，不能据此声称 J-Link 链路可用 |
+| Windows 脚本 | 配置存在，当前未实测 | `Flash/*.bat` 未在 Windows 环境验证 |
 
-配置使用CMake界面 / ST的插件
+#### 环境要求
 
-编译使用F7 或者 CMake界面 或者 ST的
+- `cmake`、`ninja`、`arm-none-eabi-gcc` 和 `arm-none-eabi-gdb` 在 `PATH` 中。
+- CMSIS-DAP 链路需要 `openocd`，并将探针通过 SWD 接到目标板。
+- VS Code 图形化调试需要 Cortex-Debug；代码索引建议安装 clangd，任务按钮为可选插件。
+- J-Link 烧写/调试另需安装 SEGGER J-Link Software，使 `JLinkExe`（Linux）或 `JLink`（Windows）可用。
+- 当前脚本和 `.vscode/launch.json` 用工作区目录名寻找 ELF，因此工作区目录名、CMake 工程名和输出文件名应保持为 `DM_MC02`。若重命名工程，需要同步修改这些配置。
 
-烧录可以使用写好的脚本。写成了task可以直接调用（DAP JLink）
+#### 命令行使用（Linux）
 
-调试可以直接用调试栏目。写了cortex debug的内容，也配置了ozone的内容（但是ozone这个东西自己导入的居多）
+首次配置并编译：
 
-Cortex-Debug可以看rtos的简单运行情况，内存使用情况，查看变量等等
+```bash
+cmake --preset Debug
+cmake --build --preset Debug
+```
+
+后续仅编译：
+
+```bash
+cmake --build build/Debug
+```
+
+使用 CMSIS-DAP 烧写（脚本会烧写 ELF、校验、复位；脚本已具有执行权限）：
+
+```bash
+./Flash/OpenOCD_flash.sh
+```
+
+使用 J-Link 烧写（仅在安装 J-Link 软件后可用，当前环境未实测）：
+
+```bash
+./Flash/JLink_flash.sh
+```
+
+#### VS Code 使用
+
+- `Terminal: Run Task` 中可运行 `Configure`、`Build`、`Clean_Rebuild`、`Clean` 以及 Linux/Windows 的 OpenOCD、J-Link 烧写任务；默认构建任务 `Build` 可用 `Ctrl+Shift+B` 运行。
+- 在“运行和调试”中选择 `cmsis-dap-debug`，即可通过 OpenOCD 启动 Cortex-Debug，会装载 `build/Debug/DM_MC02.elf` 并运行至 `main`。
+- `jlink-debug` 配置已经存在，但需安装 SEGGER J-Link 软件后再使用，当前环境未实测。
+- Cortex-Debug 可查看变量、寄存器、内存和基本的 FreeRTOS 运行信息；外设寄存器描述文件位于 `Flash/STM32H723.svd`。
+- `Flash/linux.jdebug` 是 Ozone 工程示例，其中含创建者机器的绝对路径、探针序列号和 Ozone 版本信息，换机器后必须在 Ozone 中重新选择 ELF 与探针，不能直接视为通用配置。
+
+相关配置文件：`.vscode/tasks.json`、`.vscode/launch.json`、`Flash/daplink.cfg` 和 `Flash/README.md`。
+
+#### CAN1 驱动 C620/M3508 实机验证
+
+2026-09-01 已使用 C620（绿色双闪，ID 为 2）和 M3508 完成实机验证：CAN 波特率为 1 Mbps，控制帧标准 ID 为 `0x200`，ID2 的电流指令放在 `DATA[2:3]`（高字节在前），反馈帧标准 ID 为 `0x202`。本次成功连接使用同面线；控制板和电调均需正确供电，CANH/CANL 线序及终端电阻应按硬件说明检查。
+
+当前 `StartDefaultTask` 是低电流短时测试：启动 2 秒后向 ID2 发送原始电流值 512（约 0.625 A），持续 1 秒后永久恢复为零电流。每 1 ms 发送一次，同时接收并解析反馈。复位会再次触发该测试，烧写或复位前必须将电机架空或可靠固定。
+
+本次调试器实测结果为：发送成功 12726 帧、发送队列满 0 次、收到 `0x202` 反馈 12856 帧、峰值转速 3609 rpm，CAN 发送错误计数、接收错误计数和 Bus-Off 均为 0。可在 Live Watch 中查看 `can1_statu`、`can1_tx_ok_count`、`can1_tx_full_count`、`can1_feedback_202_count`、`c620_peak_abs_speed_rpm`、`can1_tx_error_count`、`can1_rx_error_count` 和 `can1_bus_off`。
+
+若 `can1_statu` 从 `Status::OK` 变为持续 `Status::FULL`，应先检查错误计数和 Bus-Off；本次故障由 CAN 连接线序不正确导致，自动重发最终占满发送 FIFO，而不是任务未执行或软件发送缓冲区本身太小。
 
 ### 因为底层驱动涉及cpp，解决方法：
 

@@ -31,9 +31,9 @@ extern "C"
   }
 
   /**
-   * @brief FDCAN发送完成中断回调
+   * @brief FDCAN发送 FIFO 变空回调，用于继续排空软件发送缓冲区
    */
-  void HAL_FDCAN_TxBufferCompleteCallback(FDCAN_HandleTypeDef *hfdcan, uint32_t BufferIndexes)
+  void HAL_FDCAN_TxFifoEmptyCallback(FDCAN_HandleTypeDef *hfdcan)
   {
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
@@ -108,7 +108,8 @@ Status BspCan::init()
   if (start_hardware() != Status::OK)
     return Status::IO_ERROR;
 
-  // 开启接收和发送完成中断
+  // 开启接收和发送 FIFO 变空中断。TX_COMPLETE 需要指定 TXBTIE buffer
+  // 位；FIFO 模式下传入 BufferIndexes=0 不会产生发送完成回调。
   if (start_reception() != Status::OK)
     return Status::IO_ERROR;
 
@@ -184,8 +185,8 @@ Status BspCan::start_reception()
   if (HAL_FDCAN_ActivateNotification(_hfdcan, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0) != HAL_OK)
     return Status::IO_ERROR;
 
-  // 开启发送完成中断
-  if (HAL_FDCAN_ActivateNotification(_hfdcan, FDCAN_IT_TX_COMPLETE, 0) != HAL_OK)
+  // 软件发送缓冲区积压时，在硬件 FIFO 发送完后继续排空。
+  if (HAL_FDCAN_ActivateNotification(_hfdcan, FDCAN_IT_TX_FIFO_EMPTY, 0) != HAL_OK)
     return Status::IO_ERROR;
 
   return Status::OK;
