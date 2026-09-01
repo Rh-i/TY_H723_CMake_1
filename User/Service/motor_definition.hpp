@@ -6,7 +6,6 @@
  * @date 2026-09-01
  *
  * @note 本文件只保存可复制的数据结构，不包含硬件所有权、在线检查或 CAN 资源。
- * @todo 文件名中的 defination 为历史拼写，接口稳定后可统一重命名为 motor_definition.hpp。
  */
 #include <stdint.h>
 

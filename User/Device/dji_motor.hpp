@@ -19,7 +19,7 @@
 #define __DJI_MOTOR_HPP__
 
 #include "bsp_can.hpp"
-#include "motor_defination.hpp"
+#include "motor_definition.hpp"
 #include "online_check.hpp"
 
 #include <stdint.h>
