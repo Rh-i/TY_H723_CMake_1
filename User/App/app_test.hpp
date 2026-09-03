@@ -22,6 +22,9 @@
 /** @brief 编译并创建 CAN1 ID2 M3508 低电流转动测试；设为 0 可停用。 */
 #define APP_TEST_DJI_MOTOR_ENABLED 0
 
+/** @brief 编译并创建 CAN2 ID1 达妙普通固件四模式实机测试；设为 0 可停用。 */
+#define APP_TEST_DM_MOTOR_ENABLED 1
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -41,6 +44,14 @@ extern "C"
    * @warning 启用后每次复位都会在启动 2 秒后驱动电机 1 秒，测试时必须架空或固定电机。
    */
   void dji_motor_test_task(void *argument);
+
+  /**
+   * @brief CAN2 ID1 达妙普通固件四模式实机测试任务
+   * @param argument 任务参数（未使用，NULL）
+   * @note 仅在 APP_TEST_DM_MOTOR_ENABLED 非零时创建。
+   * @warning 测试会临时切换电机模式，每种模式运行约 4 秒；结束后会失能并恢复原模式。
+   */
+  void dm_motor_test_task(void *argument);
 
 #ifdef __cplusplus
 }

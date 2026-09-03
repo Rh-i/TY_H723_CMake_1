@@ -55,13 +55,21 @@ DjiMotorBus::DjiMotorBus()
     _slots{},
     _attached_count(0U),
     _used(false),
-    _statu(Status::NOT_INIT)
+    _statu(Status::NOT_INIT),
+    _tx_endpoint(this,
+                 &DjiMotorBus::tx_callback,
+                 &DjiMotorBus::tx_ready_callback,
+                 MotorTxManager::Schedule(1U, 0U, 0U))
 {
 }
 
 
 DjiMotorBus::~DjiMotorBus()
 {
+  if (_tx_endpoint.registered())
+  {
+    MotorTxManager::unregister_endpoint(_tx_endpoint);
+  }
   _can_item       = nullptr;
   _attached_count = 0U;
   _used           = false;
@@ -136,7 +144,16 @@ Status DjiMotorBus::acquire(BspCan &can_item,
   free_bus->_slots[slot].occupied = true;
   free_bus->_attached_count       = 1U;
   free_bus->_used                 = true;
-  free_bus->_statu                = Status::OK;
+  free_bus->_statu                = MotorTxManager::register_endpoint(free_bus->_tx_endpoint);
+  if (free_bus->_statu != Status::OK)
+  {
+    memset(&free_bus->_tx_msg, 0, sizeof(free_bus->_tx_msg));
+    memset(free_bus->_slots, 0, sizeof(free_bus->_slots));
+    free_bus->_can_item       = nullptr;
+    free_bus->_attached_count = 0U;
+    free_bus->_used           = false;
+    return free_bus->_statu;
+  }
   *bus                            = free_bus;
 
   return Status::OK;
@@ -177,11 +194,12 @@ Status DjiMotorBus::release(DjiMotorBus *bus, uint8_t slot)
 
   if (bus->_attached_count == 0U)
   {
+    const Status unregister_status = MotorTxManager::unregister_endpoint(bus->_tx_endpoint);
     memset(&bus->_tx_msg, 0, sizeof(bus->_tx_msg));
     memset(bus->_slots, 0, sizeof(bus->_slots));
     bus->_can_item = nullptr;
     bus->_used     = false;
-    bus->_statu    = Status::NOT_INIT;
+    bus->_statu    = (unregister_status == Status::OK) ? Status::NOT_INIT : unregister_status;
   }
   else
   {
@@ -246,6 +264,28 @@ Status DjiMotorBus::send(void)
 }
 
 
+Status DjiMotorBus::tx_callback(void *context)
+{
+  if (context == nullptr)
+  {
+    return Status::BAD_ARG;
+  }
+  return static_cast<DjiMotorBus *>(context)->send();
+}
+
+
+bool DjiMotorBus::tx_ready_callback(const void *context)
+{
+  if (context == nullptr)
+  {
+    return false;
+  }
+
+  const DjiMotorBus *bus = static_cast<const DjiMotorBus *>(context);
+  return bus->_used && (bus->_can_item != nullptr) && (bus->_attached_count > 0U);
+}
+
+
 Status DjiMotorBus::sendAll(void)
 {
   Status result = Status::OK;
@@ -292,9 +332,11 @@ template <MotorType type>
 DjiMotor<type>::DjiMotor(BspCan &can_item,
                          uint8_t motor_id,
                          float ratio,
-                         uint16_t ecd_offset,
+                         float offset,
                          DjiMotorControlMode control_mode)
   : _data{},
+    _raw_data{},
+    _param{},
     _online(30U),
     _lvbo_data{},
     _bus(nullptr),
@@ -304,12 +346,12 @@ DjiMotor<type>::DjiMotor(BspCan &can_item,
     _control_mode(control_mode),
     _statu(Status::NOT_INIT),
     _last_ecd(0),
-    _total_ecd(0),
+    _total_angle(0.0f),
     _last_velocity(0.0f),
     _feedback_ready(false),
     _next(nullptr)
 {
-  if (!MotorIDValid(motor_id) || (ecd_offset >= ENCODER_COUNTS) || (ratio < 0.0f))
+  if (!MotorIDValid(motor_id) || !isfinite(offset) || !isfinite(ratio) || (ratio < 0.0f))
   {
     _statu = Status::BAD_ARG;
     return;
@@ -336,11 +378,11 @@ DjiMotor<type>::DjiMotor(BspCan &can_item,
     _control_mode = DjiMotorControlMode::CURRENT;
   }
 
-  _data.param.ecdOffset    = ecd_offset;
-  _data.param.ecdFullRange = ENCODER_COUNTS;
-  _data.param.currentLimit = static_cast<uint16_t>(output_limit(_control_mode));
-  _data.param.ratio        = ratio;
-  _bus_slot                = ControlSlot(motor_id);
+  _data.param.offset      = offset;
+  _data.param.ratio       = ratio;
+  _param.ecd_full_range   = ENCODER_COUNTS;
+  _param.current_limit    = static_cast<uint16_t>(output_limit(_control_mode));
+  _bus_slot               = ControlSlot(motor_id);
 
   if (dji_motor_feedback_in_use(can_item, feedback_std_id(motor_id)))
   {
@@ -375,6 +417,20 @@ template <MotorType type>
 const MotorData &DjiMotor<type>::data(void) const
 {
   return _data;
+}
+
+
+template <MotorType type>
+const DjiMotorRawData &DjiMotor<type>::raw_data(void) const
+{
+  return _raw_data;
+}
+
+
+template <MotorType type>
+const DjiMotorParam &DjiMotor<type>::param(void) const
+{
+  return _param;
 }
 
 
@@ -424,16 +480,17 @@ Status DjiMotor<type>::DataUnpack(CanRxMsg rx)
 
   if (!_feedback_ready)
   {
-    int32_t initial_delta = static_cast<int32_t>(ecd) - _data.param.ecdOffset;
-    if (initial_delta > WRAP_THRESHOLD)
+    _total_angle = static_cast<float>(ecd) * TWO_PI /
+                   static_cast<float>(_param.ecd_full_range);
+    float relative_angle = _total_angle - _data.param.offset;
+    if (relative_angle > (TWO_PI * 0.5f))
     {
-      initial_delta -= ENCODER_COUNTS;
+      _total_angle -= TWO_PI;
     }
-    else if (initial_delta < -WRAP_THRESHOLD)
+    else if (relative_angle < (-TWO_PI * 0.5f))
     {
-      initial_delta += ENCODER_COUNTS;
+      _total_angle += TWO_PI;
     }
-    _total_ecd      = initial_delta;
     _feedback_ready = true;
   }
   else
@@ -447,30 +504,30 @@ Status DjiMotor<type>::DataUnpack(CanRxMsg rx)
     {
       delta += ENCODER_COUNTS;
     }
-    _total_ecd += delta;
+    _total_angle += static_cast<float>(delta) * TWO_PI /
+                    static_cast<float>(_param.ecd_full_range);
   }
   _last_ecd = ecd;
 
-  _data.rawData.ecd           = ecd;
-  _data.rawData.rpm           = rpm;
-  _data.rawData.TorqueCurrent = current;
-  _data.rawData.Temperature   = (type == Motor2006) ? 0U : rx.data[6];
+  _raw_data.ecd            = ecd;
+  _raw_data.rpm            = rpm;
+  _raw_data.torque_current = current;
+  _raw_data.temperature    = (type == Motor2006) ? 0U : rx.data[6];
 
   const float velocity = static_cast<float>(rpm) * RPM_TO_RAD_PER_SEC / _data.param.ratio;
-  const float angle    = static_cast<float>(_total_ecd) * TWO_PI /
-                      (static_cast<float>(ENCODER_COUNTS) * _data.param.ratio);
+  const float angle    = (_total_angle - _data.param.offset) / _data.param.ratio;
   float single_angle = fmodf(angle, TWO_PI);
   if (single_angle < 0.0f)
   {
     single_angle += TWO_PI;
   }
 
-  _data.radianData.angle_SingleRound = single_angle;
-  _data.radianData.angle_MultiRound  = angle;
-  _data.radianData.velocity          = velocity;
-  _data.radianData.acceleration      = had_previous_feedback
-                                         ? (velocity - _last_velocity) * 1000.0f
-                                         : 0.0f;
+  _data.radian_data.angle_single_round = single_angle;
+  _data.radian_data.angle_multi_round  = angle;
+  _data.radian_data.velocity           = velocity;
+  _data.radian_data.acceleration       = had_previous_feedback
+                                            ? (velocity - _last_velocity) * 1000.0f
+                                            : 0.0f;
   _last_velocity = velocity;
 
   _online.refresh_task();

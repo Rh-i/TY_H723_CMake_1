@@ -27,13 +27,13 @@ namespace
 {
 void sample_motor_feedback(void)
 {
-  const MotorData &data = dji_motor_test_motor.data();
-  dji_motor_test_speed_rpm      = data.rawData.rpm;
-  dji_motor_test_given_current  = data.rawData.TorqueCurrent;
-  dji_motor_test_temperature    = data.rawData.Temperature;
+  const DjiMotorRawData &raw_data = dji_motor_test_motor.raw_data();
+  dji_motor_test_speed_rpm      = raw_data.rpm;
+  dji_motor_test_given_current  = raw_data.torque_current;
+  dji_motor_test_temperature    = raw_data.temperature;
   dji_motor_test_online_status  = dji_motor_test_motor.online().isOnline();
 
-  const int32_t speed = data.rawData.rpm;
+  const int32_t speed = raw_data.rpm;
   const uint16_t absolute_speed =
     static_cast<uint16_t>(speed < 0 ? -speed : speed);
   if (absolute_speed > dji_motor_test_peak_abs_speed_rpm)

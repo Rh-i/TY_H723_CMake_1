@@ -3,6 +3,8 @@
 #include "FreeRTOS.h" // IWYU pragma: keep
 #include "bsp_cfg.hpp"
 #include "dji_motor.hpp"
+#include "dm_motor.hpp"
+#include "motor_tx_manager.hpp"
 #include "task.h"
 
 #include <stdint.h>
@@ -19,7 +21,7 @@ namespace
 {
 void process_registered_can(BspCan &can_item)
 {
-  if (!dji_motor_uses_can(can_item))
+  if (!dji_motor_uses_can(can_item) && !dm_motor_uses_can(can_item))
   {
     return;
   }
@@ -28,7 +30,13 @@ void process_registered_can(BspCan &can_item)
   while (can_item.receive(&rx, 0U) == Status::OK)
   {
     ++dji_motor_rx_frame_count;
-    if (dji_motor_dispatch_rx(can_item, rx) == Status::OK)
+    Status dispatch_status = dji_motor_dispatch_rx(can_item, rx);
+    if (dispatch_status != Status::OK)
+    {
+      dispatch_status = dm_motor_dispatch_rx(can_item, rx);
+    }
+
+    if (dispatch_status == Status::OK)
     {
       ++dji_motor_rx_dispatch_count;
     }
@@ -54,7 +62,7 @@ extern "C" void dji_motor_task(void *argument)
     process_registered_can(bsp_can2);
     process_registered_can(bsp_can3);
 
-    dji_motor_task_send_status = DjiMotorSendAll();
+    dji_motor_task_send_status = MotorTxManager::update();
     ++dji_motor_task_loop_count;
     vTaskDelayUntil(&wake_time, pdMS_TO_TICKS(1U));
   }

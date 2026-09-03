@@ -74,7 +74,7 @@ void all_init()
   /* 初始化协议层 */
   protocol_init();
 
-  /* 系统与 DJI 电机维护任务（均为 1 kHz，DJI 接收/发送优先级更高） */
+  /* 系统与电机维护任务（均为 1 kHz，电机接收/发送优先级更高） */
   configASSERT(xTaskCreate(sys_task, "sys", 256, NULL, tskIDLE_PRIORITY + 7, NULL) == pdPASS);
   configASSERT(xTaskCreate(dji_motor_task, "dji_motor", 512, NULL, tskIDLE_PRIORITY + 8, NULL) == pdPASS);
 
@@ -99,6 +99,15 @@ void all_init()
   configASSERT(xTaskCreate(dji_motor_test_task,
                            "motor_test",
                            256,
+                           NULL,
+                           tskIDLE_PRIORITY + 5,
+                           NULL) == pdPASS);
+#endif
+
+#if APP_TEST_DM_MOTOR_ENABLED
+  configASSERT(xTaskCreate(dm_motor_test_task,
+                           "dm_test",
+                           512,
                            NULL,
                            tskIDLE_PRIORITY + 5,
                            NULL) == pdPASS);

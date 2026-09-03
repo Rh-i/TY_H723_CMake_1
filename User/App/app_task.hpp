@@ -33,7 +33,7 @@ extern "C"
   void sys_task(void *argument);
 
   /**
-   * @brief DJI 电机 1 kHz 维护任务，负责 CAN 反馈分发和控制帧发送
+   * @brief 电机 1 kHz 维护任务，负责 DJI/DM CAN 反馈分发和统一控制帧发送
    * @param argument 任务参数（未使用，NULL）
    * @note 由 all_init() 创建，不应由业务代码直接调用。
    */

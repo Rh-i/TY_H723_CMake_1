@@ -1,56 +1,43 @@
 /**
- * @file motor_defination.hpp
+ * @file motor_definition.hpp
  * @author ChoseB
- * @brief 电机反馈、运动学数据和观测器输出的通用数据定义
- * @version 0.1
- * @date 2026-09-01
+ * @brief 电机通用运动学数据和观测器输出定义
+ * @version 0.2
+ * @date 2026-09-02
  *
- * @note 本文件只保存可复制的数据结构，不包含硬件所有权、在线检查或 CAN 资源。
+ * @note 本文件只保存所有电机都具有的可复制数据，不包含具体反馈协议、硬件所有权、
+ *       在线检查或 CAN 资源。协议原始值和协议限制由具体电机类型自行定义。
  */
-#include <stdint.h>
-
-#ifndef MOTOR_DEFINATION_HPP
-#define MOTOR_DEFINATION_HPP
+#ifndef __MOTOR_DEFINITION_HPP__
+#define __MOTOR_DEFINITION_HPP__
 
 /**
- * @brief 单个电机的反馈数据、运动学换算结果和固定参数
+ * @brief 单个电机经过机械传动换算后的通用运动学数据
  *
- * @note 各字段由具体电机设备对象初始化和更新；默认构造的裸结构不保证字段有效。
+ * @note radian_data 统一表示最终机构输出轴；具体电机首先将协议原始值换算到
+ *       上一级设备轴，再按 (设备轴角度 - offset) / ratio 换算到最终输出轴。
  */
 struct MotorData
 {
-    /**
-     * @brief 从电调反馈帧直接解析得到的原始数据
-     */
-    struct RawData
-    {
-        int16_t ecd;           ///< 编码器原始位置计数
-        int16_t rpm;           ///< 电调反馈的有符号转速，单位：rpm
-        int16_t TorqueCurrent; ///< 电调反馈的有符号原始力矩电流
-        uint8_t Temperature;   ///< 电调反馈温度，单位：摄氏度
-    } rawData;
+  /**
+   * @brief 最终机构输出轴的 SI 制运动量
+   */
+  struct Radian
+  {
+    float angle_single_round; ///< 单圈机械角度，单位：rad
+    float angle_multi_round;  ///< 累计多圈机械角度，单位：rad
+    float velocity;           ///< 角速度，单位：rad/s
+    float acceleration;       ///< 角加速度，单位：rad/s^2
+  } radian_data;
 
-    /**
-     * @brief 基于原始反馈和减速比换算后的 SI 制运动量
-     */
-    struct Radian
-    {
-        float angle_SingleRound; ///< 单圈机械角度，单位：rad
-        float angle_MultiRound;  ///< 累计多圈机械角度，单位：rad
-        float velocity;          ///< 输出轴角速度，单位：rad/s
-        float acceleration;      ///< 输出轴角加速度，单位：rad/s^2
-    } radianData;
-
-    /**
-     * @brief 解析反馈和限制输出所需的固定参数
-     */
-    struct Param
-    {
-        uint16_t ecdOffset;    ///< 机械零位对应的编码器原始值
-        uint16_t ecdFullRange; ///< 编码器一圈的计数总数，例如 8192
-        uint16_t currentLimit; ///< 原始控制指令允许的绝对值上限
-        float ratio;           ///< 转子转速与输出轴转速之比
-    } param;
+  /**
+   * @brief 从具体电机设备轴到最终机构输出轴的通用机械参数
+   */
+  struct Param
+  {
+    float offset; ///< 设备轴机械零位偏移，单位：rad
+    float ratio;  ///< 设备轴转速与最终机构输出轴转速之比，必须大于 0
+  } param;
 };
 
 /**
@@ -60,9 +47,9 @@ struct MotorData
  */
 struct LuenbergerMotorData
 {
-    float angle;        ///< 观测得到的累计机械角度，单位：rad
-    float velocity;     ///< 观测得到的角速度，单位：rad/s
-    float acceleration; ///< 观测得到的角加速度，单位：rad/s^2
+  float angle;        ///< 观测得到的累计机械角度，单位：rad
+  float velocity;     ///< 观测得到的角速度，单位：rad/s
+  float acceleration; ///< 观测得到的角加速度，单位：rad/s^2
 };
 
-#endif // MOTOR_DEFINATION_HPP
+#endif // __MOTOR_DEFINITION_HPP__

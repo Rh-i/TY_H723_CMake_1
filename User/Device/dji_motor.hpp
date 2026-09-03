@@ -11,7 +11,7 @@
  *          控制帧协议的不同型号电机可以共享一帧发送。
  *
  * @note 构造阶段只登记软件对象关系，不初始化或访问 CAN 硬件。
- * @warning FillData() 与 DjiMotorSendAll() 若运行在不同任务或中断上下文，实现时
+ * @warning FillData() 与 MotorTxManager::update() 若运行在不同任务或中断上下文，实现时
  *          必须保护共享输出槽位，避免 C++ 数据竞争。
  * @note 协议映射、反馈解析、固定池管理和发送逻辑实现在 dji_motor.cpp。
  */
@@ -20,6 +20,7 @@
 
 #include "bsp_can.hpp"
 #include "motor_definition.hpp"
+#include "motor_tx_manager.hpp"
 #include "online_check.hpp"
 
 #include <stdint.h>
@@ -57,6 +58,26 @@ enum class DjiMotorControlMode : uint8_t
   CURRENT,     ///< GM6020 电流控制：0x1FE/0x2FE，需在电机固件中启用电流环
 };
 
+/**
+ * @brief DJI 电调反馈协议特有的原始数据
+ */
+struct DjiMotorRawData
+{
+  int16_t ecd;            ///< 编码器原始位置计数
+  int16_t rpm;            ///< 电调反馈的有符号转速，单位：rpm
+  int16_t torque_current; ///< 电调反馈的有符号原始力矩电流
+  uint8_t temperature;    ///< 电调反馈温度，单位：摄氏度；无温度反馈的型号保持为 0
+};
+
+/**
+ * @brief DJI 协议解析及控制限幅参数
+ */
+struct DjiMotorParam
+{
+  uint16_t ecd_full_range; ///< 编码器一圈的计数总数，例如 8192
+  uint16_t current_limit;  ///< 原始控制指令允许的绝对值上限
+};
+
 template <MotorType type>
 class DjiMotor;
 
@@ -65,7 +86,7 @@ class DjiMotor;
  *
  * @return Status::OK 所有控制帧均成功交给 CAN BSP；其他状态表示至少一帧发送失败。
  *
- * @note 应在固定频率（通常为 1 kHz）的高优先级任务中调用。
+ * @note 保留本函数用于兼容直接发送；正常周期发送由 MotorTxManager::update() 统一完成。
  * @note 未占用的帧槽位必须保持为零，防止向不存在的电机输出指令。
  */
 Status DjiMotorSendAll(void);
@@ -122,6 +143,7 @@ private:
   uint8_t   _attached_count; ///< 当前已注册的电机数量，范围 0~4
   bool      _used;           ///< 固定池项是否已绑定有效的 (CAN, std_id)
   Status    _statu;          ///< 最近一次池管理或发送操作的结果
+  MotorTxManager::Endpoint _tx_endpoint; ///< 供统一电机发送管理器调度的聚合帧端点
 
   /** @brief 获取按需初始化的固定池首地址，避免跨编译单元的静态构造顺序问题。 */
   static DjiMotorBus *pool(void);
@@ -185,6 +207,12 @@ private:
    */
   Status send(void);
 
+  /** @brief MotorTxManager 的聚合帧发送回调。 */
+  static Status tx_callback(void *context);
+
+  /** @brief 仅在 Bus 已启用且至少包含一个槽位时允许周期发送。 */
+  static bool tx_ready_callback(const void *context);
+
   /**
    * @brief 遍历固定池并发送所有已启用 Bus
    * @return Status::OK 全部成功；其他状态表示至少一个 Bus 发送失败。
@@ -208,14 +236,16 @@ private:
  * @tparam type 电机型号，决定合法 ID、反馈解析、控制帧映射、限幅和默认减速比
  *
  * @details 对象负责保存单电机反馈和目标输出。多个电机的目标输出由内部
- *          DjiMotorBus 聚合后通过 DjiMotorSendAll() 周期发送。
+ *          DjiMotorBus 聚合后注册到 MotorTxManager 周期发送。
  * @note 对象不可复制或移动，以保证在线检查节点和控制帧槽位的身份稳定。
  */
 template <MotorType type>
 class DjiMotor
 {
 private:
-  MotorData           _data;        ///< 原始反馈、换算后的运动量和固定参数
+  MotorData           _data;        ///< 最终机构输出轴的通用运动学数据
+  DjiMotorRawData     _raw_data;    ///< DJI 电调反馈协议原始数据
+  DjiMotorParam       _param;       ///< DJI 编码器和原始控制限幅参数
   Online              _online;      ///< 由有效反馈帧刷新的在线检查对象
   LuenbergerMotorData _lvbo_data;   ///< 可选的 Luenberger 观测结果
 
@@ -227,7 +257,7 @@ private:
   Status             _statu;        ///< 构造注册或最近一次公开操作的状态
 
   int16_t _last_ecd;       ///< 上一次反馈的编码器原始值，用于检测跨零
-  int32_t _total_ecd;      ///< 相对 ecd_offset 累计的有符号编码器计数
+  float   _total_angle;    ///< 已完成跨零展开的电机转子累计角度，单位：rad
   float   _last_velocity;  ///< 上一次输出轴角速度，用于计算角加速度
   bool    _feedback_ready; ///< 是否已接收过至少一帧有效反馈
 
@@ -242,6 +272,16 @@ public:
    * @warning 返回的是实时引用；若反馈更新与读取不在同一任务，实现时需提供同步或快照机制。
    */
   const MotorData &data(void) const;
+
+  /**
+   * @brief 获取 DJI 电调反馈协议原始数据
+   */
+  const DjiMotorRawData &raw_data(void) const;
+
+  /**
+   * @brief 获取 DJI 编码器和原始控制限幅参数
+   */
+  const DjiMotorParam &param(void) const;
 
   /**
    * @brief 获取本电机的在线检查对象
@@ -267,9 +307,9 @@ public:
    *
    * @param can_item   电机连接的物理 CAN BSP 对象
    * @param motor_id   电调设置的 DJI 协议 ID
-   * @param ratio      电机转子到输出轴的减速比；传 0 时按型号选择默认值：
+   * @param ratio      电机转子到最终机构输出轴的减速比；传 0 时按型号选择默认值：
    *                  M3508 为 3591/187，GM6020 为 1，M2006 为 36
-   * @param ecd_offset 机械零位对应的编码器原始值
+   * @param offset     电机转子机械零位偏移，单位：rad
    * @param control_mode GM6020 的控制模式；其他电机型号忽略该参数
    *
    * @note 构造函数不能返回错误；ID 非法、槽位冲突或池耗尽可通过 statu() 查询。
@@ -278,7 +318,7 @@ public:
   DjiMotor(BspCan &can_item,
            uint8_t motor_id,
            float ratio = 0,
-           uint16_t ecd_offset = 0,
+           float offset = 0.0f,
            DjiMotorControlMode control_mode = DjiMotorControlMode::VOLTAGE);
 
   /**
@@ -305,7 +345,7 @@ public:
    * @return Status::OK 写入成功；Status::NOT_INIT 未取得内部 Bus；
    *         Status::BAD_ARG 或其他状态表示参数/Bus 操作失败。
    *
-   * @note 本函数只更新内部 Bus 槽位，实际发送由 DjiMotorSendAll() 统一完成。
+   * @note 本函数只更新内部 Bus 槽位，实际发送由 MotorTxManager::update() 统一完成。
    */
   Status FillData(int16_t output);
 
