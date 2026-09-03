@@ -123,48 +123,36 @@ class DmMotor
 {
 public:
   /**
-   * @brief 达妙电机配置
-   *
+   * @brief 构造达妙电机软件对象
+   * @param can_item 电机连接的物理 CAN
+   * @param esc_id 电机接收 ID，范围及模式偏移后必须满足标准帧限制
+   * @param master_id 电机反馈 ID，范围 0~0x7FF
+   * @param mode 电机当前已经配置的普通固件控制模式
+   * @param position_max_rad PMAX，位置绝对值上限，单位：rad；传入 0 使用型号默认值
+   * @param velocity_max_rad_s VMAX，速度绝对值上限，单位：rad/s；传入 0 使用型号默认值
+   * @param torque_max_nm TMAX，扭矩绝对值上限，单位：N·m；传入 0 使用型号默认值
+   * @param ratio 达妙输出轴到最终机构输出轴的传动比
+   * @param offset 达妙输出轴机械零位偏移，单位：rad
+   * @param period_ticks 相邻两次发送之间的 MotorTxManager::update() 次数
+   * @param phase_ticks 周期内发送相位
+   * @param order 同一周期内的发送顺序，数值较小者优先
+   * @note 构造函数只保存配置，不注册对象、不创建 RTOS 资源且不发送 CAN 帧。
    * @note ratio 默认为 1，表示直接使用达妙内置输出轴；若其后增加机械变速箱，
    *       ratio 设置为达妙输出轴转速与最终机构输出轴转速之比。
+   * @note J4310-2EC 的型号默认值为 PMAX=12.5 rad、VMAX=30 rad/s、TMAX=10 N·m。
    */
-  struct Config
-  {
-    Config(BspCan &can_item,
-           uint16_t esc_id,
-           uint16_t master_id,
-           DmControlMode mode,
-           const DmProtocolLimits &limits,
-           float ratio = 1.0f,
-           float offset = 0.0f,
-           const MotorTxManager::Schedule &schedule = MotorTxManager::Schedule())
-      : can_item(&can_item),
-        esc_id(esc_id),
-        master_id(master_id),
-        mode(mode),
-        limits(limits),
-        ratio(ratio),
-        offset(offset),
-        schedule(schedule)
-    {
-    }
-
-    BspCan                   *can_item;  ///< 电机连接的物理 CAN
-    uint16_t                  esc_id;    ///< 电机接收 ID，范围及模式偏移后必须满足标准帧限制
-    uint16_t                  master_id; ///< 电机反馈 ID，范围 0~0x7FF
-    DmControlMode             mode;      ///< 电机当前已经配置的普通固件控制模式
-    DmProtocolLimits          limits;    ///< 必须与电机 PMAX、VMAX、TMAX 一致
-    float                     ratio;     ///< 达妙输出轴到最终机构输出轴的传动比
-    float                     offset;    ///< 达妙输出轴机械零位偏移，单位：rad
-    MotorTxManager::Schedule schedule;   ///< 周期发送频率、相位和顺序
-  };
-
-  /**
-   * @brief 构造达妙电机软件对象
-   * @param config 电机、协议和发送调度配置
-   * @note 构造函数只保存配置，不注册对象、不创建 RTOS 资源且不发送 CAN 帧。
-   */
-  DmMotor(const Config &config);
+  DmMotor(BspCan &can_item,
+          uint16_t esc_id,
+          uint16_t master_id,
+          DmControlMode mode,
+          float position_max_rad = 0.0f,
+          float velocity_max_rad_s = 0.0f,
+          float torque_max_nm = 0.0f,
+          float ratio = 1.0f,
+          float offset = 0.0f,
+          uint16_t period_ticks = 1U,
+          uint16_t phase_ticks = 0U,
+          uint16_t order = 0U);
 
   /**
    * @brief 注销反馈分发和统一发送端点
@@ -228,9 +216,11 @@ public:
   Status set_position_torque_target(float position, float velocity_limit, float current_limit_ratio);
 
   /**
-   * @brief 提交启用请求，由统一发送管理器发送并等待 ENABLED 反馈
+   * @brief 将当前模式的全部控制目标清零，再提交启用请求并等待 ENABLED 反馈
    * @return Status::OK 请求已接受，并不表示电机已经启用；Status::NOT_INIT 尚未初始化
-   *         或未缓存有效控制目标；Status::BUSY 已有不兼容的一次性请求。
+   *         Status::BUSY 已有不兼容的一次性请求；其他状态表示零目标编码失败。
+   * @note 无需在 enable() 前调用 set_*_target()；即使此前缓存过目标，也会被零目标覆盖。
+   * @note MIT 模式会编码位置、速度、Kp、Kd、扭矩均为 0 的协议帧，不能直接用全零字节代替。
    */
   Status enable(void);
 

@@ -45,6 +45,26 @@ bool mode_valid(DmControlMode mode)
          (mode == DmControlMode::POSITION_TORQUE);
 }
 
+template <DmMotorType TYPE>
+struct DmMotorDefaults;
+
+template <>
+struct DmMotorDefaults<DmMotorType::J4310_2EC>
+{
+  static DmProtocolLimits resolve_limits(float position_max_rad,
+                                         float velocity_max_rad_s,
+                                         float torque_max_nm)
+  {
+    constexpr float DEFAULT_PMAX_RAD   = 12.5f;
+    constexpr float DEFAULT_VMAX_RAD_S = 30.0f;
+    constexpr float DEFAULT_TMAX_NM    = 10.0f;
+
+    return DmProtocolLimits(position_max_rad == 0.0f ? DEFAULT_PMAX_RAD : position_max_rad,
+                            velocity_max_rad_s == 0.0f ? DEFAULT_VMAX_RAD_S : velocity_max_rad_s,
+                            torque_max_nm == 0.0f ? DEFAULT_TMAX_NM : torque_max_nm);
+  }
+};
+
 uint16_t float_to_uint(float value, float minimum, float maximum, uint8_t bits)
 {
   const uint32_t span = (1UL << bits) - 1UL;
@@ -116,16 +136,29 @@ DmMotor<TYPE> *DmMotor<TYPE>::_tail = nullptr;
 
 
 template <DmMotorType TYPE>
-DmMotor<TYPE>::DmMotor(const Config &config)
+DmMotor<TYPE>::DmMotor(BspCan &can_item,
+                       uint16_t esc_id,
+                       uint16_t master_id,
+                       DmControlMode mode,
+                       float position_max_rad,
+                       float velocity_max_rad_s,
+                       float torque_max_nm,
+                       float ratio,
+                       float offset,
+                       uint16_t period_ticks,
+                       uint16_t phase_ticks,
+                       uint16_t order)
   : _data{},
     _feedback{},
     _online(30U),
     _lvbo_data{},
-    _can_item(config.can_item),
-    _esc_id(config.esc_id),
-    _master_id(config.master_id),
-    _mode(config.mode),
-    _limits(config.limits),
+    _can_item(&can_item),
+    _esc_id(esc_id),
+    _master_id(master_id),
+    _mode(mode),
+    _limits(DmMotorDefaults<TYPE>::resolve_limits(position_max_rad,
+                                                  velocity_max_rad_s,
+                                                  torque_max_nm)),
     _enable_state(DmEnableState::DISABLED),
     _pending_action(DmPendingAction::NONE),
     _status(Status::NOT_INIT),
@@ -133,15 +166,15 @@ DmMotor<TYPE>::DmMotor(const Config &config)
     _tx_endpoint(this,
                  &DmMotor<TYPE>::tx_callback,
                  &DmMotor<TYPE>::tx_ready_callback,
-                 config.schedule),
+                 MotorTxManager::Schedule(period_ticks, phase_ticks, order)),
     _last_velocity(0.0f),
     _target_ready(false),
     _feedback_ready(false),
     _initialized(false),
     _next(nullptr)
 {
-  _data.param.offset    = config.offset;
-  _data.param.ratio     = config.ratio;
+  _data.param.offset    = offset;
+  _data.param.ratio     = ratio;
   _feedback.drive_state = DmDriveState::UNKNOWN;
   _control_msg.std_id   = control_std_id();
 }
@@ -433,7 +466,7 @@ template <DmMotorType TYPE>
 Status DmMotor<TYPE>::enable(void)
 {
   const ScopedTaskCritical lock;
-  if (!_initialized || !_target_ready)
+  if (!_initialized)
   {
     _status = Status::NOT_INIT;
     return _status;
@@ -453,6 +486,30 @@ Status DmMotor<TYPE>::enable(void)
       (_enable_state == DmEnableState::DISABLE_PENDING))
   {
     _status = Status::BUSY;
+    return _status;
+  }
+
+  Status zero_target_status = Status::NOT_SUPPORTED;
+  switch (_mode)
+  {
+    case DmControlMode::MIT:
+      zero_target_status = set_mit_target(0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+      break;
+    case DmControlMode::POSITION_VELOCITY:
+      zero_target_status = set_position_velocity_target(0.0f, 0.0f);
+      break;
+    case DmControlMode::VELOCITY:
+      zero_target_status = set_velocity_target(0.0f);
+      break;
+    case DmControlMode::POSITION_TORQUE:
+      zero_target_status = set_position_torque_target(0.0f, 0.0f, 0.0f);
+      break;
+    default:
+      break;
+  }
+  if (zero_target_status != Status::OK)
+  {
+    _status = zero_target_status;
     return _status;
   }
 

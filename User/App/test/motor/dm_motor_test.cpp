@@ -211,11 +211,13 @@ bool run_mode_test(DmControlMode mode, const DmProtocolLimits &limits)
   const float position_target =
     make_position_target(current_position, limits.position_max_rad);
 
-  DmMotor<DmMotorType::J4310_2EC> motor({bsp_can2,
-                                         DM_ESC_ID,
-                                         DM_MASTER_ID,
-                                         mode,
-                                         limits});
+  DmMotor<DmMotorType::J4310_2EC> motor(bsp_can2,
+                                        DM_ESC_ID,
+                                        DM_MASTER_ID,
+                                        mode,
+                                        limits.position_max_rad,
+                                        limits.velocity_max_rad_s,
+                                        limits.torque_max_nm);
   dm_motor_test_last_status = motor.init();
   if (dm_motor_test_last_status != Status::OK)
   {
