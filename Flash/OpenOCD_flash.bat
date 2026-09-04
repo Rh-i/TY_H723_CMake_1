@@ -1,16 +1,49 @@
 @echo off
-REM 获取当前脚本所在目录的父目录名称（项目名称）
-for %%i in ("%~dp0\..") do set "PROJECT_NAME=%%~nxi"
+setlocal
 
-REM 构建 ELF 文件路径（使用正斜杠避免 OpenOCD 路径问题）
-set "ELF_FILE=build/debug/%PROJECT_NAME%.elf"
-set "ELF_FILE=%ELF_FILE:\=/%"
+for %%i in ("%~dp0\..") do (
+    set "PROJECT_DIR=%%~fi"
+    set "PROJECT_NAME=%%~nxi"
+)
 
-REM 检查文件是否存在
-if not exist "%ELF_FILE%" (
-    echo Error: ELF file not found at %ELF_FILE%
+set "BUILD_TYPE=%~1"
+if "%BUILD_TYPE%"=="" set "BUILD_TYPE=Debug"
+
+cd /d "%PROJECT_DIR%" || exit /b 1
+
+set "BUILD_DIR=build/%BUILD_TYPE%"
+set "INTERNAL_IMAGE=%BUILD_DIR%/%PROJECT_NAME%_internal.hex"
+set "EXTERNAL_IMAGE=%BUILD_DIR%/%PROJECT_NAME%_usb_xip.bin"
+
+if not exist "%INTERNAL_IMAGE%" (
+    echo Error: internal image not found at %INTERNAL_IMAGE%
+    exit /b 1
+)
+if not exist "%EXTERNAL_IMAGE%" (
+    echo Error: external USB XIP image not found at %EXTERNAL_IMAGE%
+    exit /b 1
+)
+for %%i in ("%EXTERNAL_IMAGE%") do if %%~zi EQU 0 (
+    echo Error: external USB XIP image is empty at %EXTERNAL_IMAGE%
     exit /b 1
 )
 
-REM 使用标准化路径烧录
-openocd -f Flash/daplink.cfg -c "program \"%ELF_FILE%\" verify reset exit"
+echo Programming internal Flash: %INTERNAL_IMAGE%
+openocd -f Flash/daplink.cfg -c "program \"%INTERNAL_IMAGE%\" verify reset exit"
+if errorlevel 1 exit /b %errorlevel%
+
+echo Programming W25Q64JV USB XIP payload: %EXTERNAL_IMAGE%
+openocd -f Flash/daplink.cfg ^
+    -c "init" ^
+    -c "reset halt" ^
+    -c "mww 0x38003ffc 0x55535031" ^
+    -c "resume" ^
+    -c "sleep 1500" ^
+    -c "halt" ^
+    -c "flash probe stm32h7x.octospi2" ^
+    -c "flash write_image erase \"%EXTERNAL_IMAGE%\" 0x70110000 bin" ^
+    -c "verify_image \"%EXTERNAL_IMAGE%\" 0x70110000 bin" ^
+    -c "reset run" ^
+    -c "shutdown"
+
+exit /b %errorlevel%

@@ -1,50 +1,55 @@
 @echo off
-setlocal enabledelayedexpansion
+setlocal
 
-REM 获取当前脚本所在目录的父目录名称（项目名称）
-for %%i in ("%~dp0\..") do set "PROJECT_NAME=%%~nxi"
-
-REM 构建 ELF 文件路径
-set "ELF_FILE=build\Debug\!PROJECT_NAME!.elf"
-
-REM 检查文件是否存在
-if not exist "!ELF_FILE!" (
-    echo Error: ELF file not found at !ELF_FILE!
-    
-    REM 尝试查找 build 目录下的 .elf 文件
-    if exist "build\Debug\*.elf" (
-        echo Looking for available ELF files in build directory...
-        for %%f in (build\*.elf) do (
-            set "FOUND_ELF=%%f"
-            echo Found: !FOUND_ELF!
-        )
-        set "ELF_FILE=!FOUND_ELF!"
-        echo Using: !ELF_FILE!
-    ) else (
-        echo Error: No ELF files found in build directory!
-        pause
-        exit /b 1
-    )
+for %%i in ("%~dp0\..") do (
+    set "PROJECT_DIR=%%~fi"
+    set "PROJECT_NAME=%%~nxi"
 )
 
-echo Project Name: !PROJECT_NAME!
-echo ELF File: !ELF_FILE!
+set "BUILD_TYPE=%~1"
+if "%BUILD_TYPE%"=="" set "BUILD_TYPE=Debug"
 
-REM 创建临时 J-Link 脚本
-set "TEMP_SCRIPT=temp_jlink_script.jlink"
-(
-echo device STM32H723VG
-echo if SWD
-echo speed 4000
-echo r
-echo loadfile !ELF_FILE!
-echo r
-echo go
-echo exit
-) > "!TEMP_SCRIPT!"
+cd /d "%PROJECT_DIR%" || exit /b 1
 
-REM 执行 J-Link
-JLink -CommanderScript "!TEMP_SCRIPT!"
+set "BUILD_DIR=build/%BUILD_TYPE%"
+set "INTERNAL_IMAGE=%BUILD_DIR%/%PROJECT_NAME%_internal.hex"
+set "EXTERNAL_IMAGE=%BUILD_DIR%/%PROJECT_NAME%_usb_xip.bin"
 
-REM 清理临时文件
-del "!TEMP_SCRIPT!"
+if not exist "%INTERNAL_IMAGE%" (
+    echo Error: internal image not found at %INTERNAL_IMAGE%
+    exit /b 1
+)
+if not exist "%EXTERNAL_IMAGE%" (
+    echo Error: external USB XIP image not found at %EXTERNAL_IMAGE%
+    exit /b 1
+)
+for %%i in ("%EXTERNAL_IMAGE%") do if %%~zi EQU 0 (
+    echo Error: external USB XIP image is empty at %EXTERNAL_IMAGE%
+    exit /b 1
+)
+
+where openocd >nul 2>nul
+if errorlevel 1 (
+    echo Error: openocd not found; the J-Link script uses OpenOCD's jlink adapter.
+    exit /b 1
+)
+
+echo Programming internal Flash through J-Link: %INTERNAL_IMAGE%
+openocd -f Flash/jlink.cfg -c "program \"%INTERNAL_IMAGE%\" verify reset exit"
+if errorlevel 1 exit /b %errorlevel%
+
+echo Programming W25Q64JV USB XIP payload through J-Link: %EXTERNAL_IMAGE%
+openocd -f Flash/jlink.cfg ^
+    -c "init" ^
+    -c "reset halt" ^
+    -c "mww 0x38003ffc 0x55535031" ^
+    -c "resume" ^
+    -c "sleep 1500" ^
+    -c "halt" ^
+    -c "flash probe stm32h7x.octospi2" ^
+    -c "flash write_image erase \"%EXTERNAL_IMAGE%\" 0x70110000 bin" ^
+    -c "verify_image \"%EXTERNAL_IMAGE%\" 0x70110000 bin" ^
+    -c "reset run" ^
+    -c "shutdown"
+
+exit /b %errorlevel%

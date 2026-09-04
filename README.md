@@ -1,7 +1,5 @@
 # CUBOT Code Rebuild：
 
-bug：新版cubemx会把链接脚本的名字改了。我按照改过名字的ld文件改了一下cmake
-
 ## 引脚冲突（工程中使用的方案）
 
 1. SPI3 与 串口3 串口5（SPI3的三个引脚）。串口3 与 RS485-3 只能保留一个
@@ -13,8 +11,8 @@ bug：新版cubemx会把链接脚本的名字改了。我按照改过名字的ld
 
 ## todo
 
-- [ ] USB-HID
-- [ ] QSPI-Flash
+- [x] USB-HID
+- [x] QSPI-Flash
 - [ ] Cortex‑M7 内核相关
   - [ ] 分支预测
   - [ ] MPU 内存保护单元
@@ -124,7 +122,7 @@ freertos的硬件支持、usb的硬件支持，外设封装好的支持等等，
 | 编译 | 已实测 | CMake 3.22 + Ninja 1.10 + Arm GNU Toolchain 15.3，成功生成 `build/Debug/DM_MC02.elf` |
 | 烧写 | 已实测 | CMSIS-DAPv2 + OpenOCD，经 SWD 完成 program、verify 和 reset，校验结果为 `Verified OK` |
 | 调试 | 已实测 | OpenOCD GDB Server + `arm-none-eabi-gdb`，成功识别 Cortex-M7、连接目标、复位暂停并读取寄存器 |
-| J-Link | 配置存在，当前未实测 | 本机未安装 SEGGER J-Link 软件，不能据此声称 J-Link 链路可用 |
+| J-Link | 配置存在，当前未实测 | 烧写脚本使用 OpenOCD 的 `jlink` 适配器；当前没有 J-Link 探针，不能据此声称实机链路可用 |
 | Windows 脚本 | 配置存在，当前未实测 | `Flash/*.bat` 未在 Windows 环境验证 |
 
 #### 环境要求
@@ -132,7 +130,7 @@ freertos的硬件支持、usb的硬件支持，外设封装好的支持等等，
 - `cmake`、`ninja`、`arm-none-eabi-gcc` 和 `arm-none-eabi-gdb` 在 `PATH` 中。
 - CMSIS-DAP 链路需要 `openocd`，并将探针通过 SWD 接到目标板。
 - VS Code 图形化调试需要 Cortex-Debug；代码索引建议安装 clangd，任务按钮为可选插件。
-- J-Link 烧写/调试另需安装 SEGGER J-Link Software，使 `JLinkExe`（Linux）或 `JLink`（Windows）可用。
+- J-Link 烧写需要 OpenOCD 包含 `jlink`/libjaylink 适配器；Ozone 或 J-Link GDB Server 调试仍需安装 SEGGER J-Link Software。
 - 当前脚本和 `.vscode/launch.json` 用工作区目录名寻找 ELF，因此工作区目录名、CMake 工程名和输出文件名应保持为 `DM_MC02`。若重命名工程，需要同步修改这些配置。
 
 #### 命令行使用（Linux）
@@ -150,13 +148,13 @@ cmake --build --preset Debug
 cmake --build build/Debug
 ```
 
-使用 CMSIS-DAP 烧写（脚本会烧写 ELF、校验、复位；脚本已具有执行权限）：
+使用 CMSIS-DAP 烧写（脚本会分别烧写内部 HEX 和外置 USB XIP BIN，并执行校验和复位）：
 
 ```bash
 ./Flash/OpenOCD_flash.sh
 ```
 
-使用 J-Link 烧写（仅在安装 J-Link 软件后可用，当前环境未实测）：
+使用 J-Link 探针烧写（经 OpenOCD `jlink` 适配器，当前环境未连接 J-Link 探针）：
 
 ```bash
 ./Flash/JLink_flash.sh
