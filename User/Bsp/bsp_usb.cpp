@@ -1,4 +1,6 @@
 #include "bsp_usb.hpp"
+#include "FreeRTOS.h" // configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY
+#include "stm32h7xx_hal.h"
 #include "tusb.h" // IWYU pragma: keep
 #include <string.h>
 
@@ -14,6 +16,14 @@
 #define CDC_RX_POLL_CHUNK 64u
 
 #define CONFIG_TOTAL_LEN (TUD_CONFIG_DESC_LEN + TUD_CDC_DESC_LEN)
+
+/**
+ * @brief USB OTG HS 中断入口，转交 TinyUSB DCD 处理。
+ */
+extern "C" void OTG_HS_IRQHandler(void)
+{
+  tud_int_handler(0);
+}
 
 ///< 接口编号（匿名 enum：TinyUSB 描述符宏参数场景，豁免 enum class 规范）
 enum
@@ -38,6 +48,7 @@ BspUsb& BspUsb::instance()
  */
 void BspUsb::init()
 {
+  HAL_NVIC_SetPriority(OTG_HS_IRQn, configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY, 0);
   tud_init(0);
 }
 
@@ -49,7 +60,7 @@ void BspUsb::init()
  */
 void BspUsb::task()
 {
-  tud_task();
+  tud_task_ext(0, false);
   process_rx();
 }
 

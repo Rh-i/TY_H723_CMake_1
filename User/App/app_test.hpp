@@ -25,6 +25,9 @@
 /** @brief 编译并创建 CAN2 ID1 达妙普通固件四模式实机测试；设为 0 可停用。 */
 #define APP_TEST_DM_MOTOR_ENABLED 0
 
+/** @brief 周期发送 USB CDC 连通性测试字符串；设为 0 可停用。 */
+#define APP_TEST_USB_CDC_ENABLED 1
+
 #ifdef __cplusplus
 extern "C"
 {

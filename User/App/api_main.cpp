@@ -133,9 +133,24 @@ extern "C" void StartDefaultTask(void *argument)
 
   printf("Default Task Started\n");
 
+#if APP_TEST_USB_CDC_ENABLED
+  static const uint8_t usb_test_message[] = "DM_MC02 TinyUSB CDC OK\r\n";
+  TickType_t           last_usb_test_tick = xTaskGetTickCount();
+#endif
+
   for (;;)
   {
-    // 默认任务当前不承载业务逻辑，仅周期让出 CPU，供后续设备服务任务接入。
+    bsp_usb.task();
+
+#if APP_TEST_USB_CDC_ENABLED
+    const TickType_t now = xTaskGetTickCount();
+    if ((now - last_usb_test_tick) >= pdMS_TO_TICKS(1000U))
+    {
+      last_usb_test_tick = now;
+      (void)bsp_usb.cdc_write(usb_test_message, sizeof(usb_test_message) - 1U);
+    }
+#endif
+
     osDelay(1);
   }
 }
