@@ -3,34 +3,25 @@
 #include <stdint.h>
 
 #include "main.h"
-#include "quadspi.h"
+#include "octospi.h"
 
-/** @brief Loader 私有 QSPI HAL 句柄，名称与平台适配层约定一致。 */
-QSPI_HandleTypeDef hqspi;
-/** @brief 板级初始化进度/失败码，定义见 loader_board.h。 */
+OSPI_HandleTypeDef hospi2;
 volatile int loader_board_stage;
-/** @brief 发生 Fault 时保存的 Configurable Fault Status Register。 */
 volatile uint32_t loader_fault_cfsr;
-/** @brief 发生 Fault 时保存的 HardFault Status Register。 */
 volatile uint32_t loader_fault_hfsr;
-/** @brief 发生 BusFault 时保存的错误地址。 */
 volatile uint32_t loader_fault_bfar;
-/** @brief 发生 MemManage Fault 时保存的错误地址。 */
 volatile uint32_t loader_fault_mmfar;
 
-/** @brief 链接脚本定义的 Loader 栈顶地址。 */
 extern uint32_t __loader_stack_top__;
 void SysTick_Handler(void);
-void QUADSPI_IRQHandler(void);
+void OCTOSPI2_IRQHandler(void);
 
-/** @brief 未使用中断的安全默认入口；停在循环中以便 GDB 定位。 */
 static void Default_Handler(void)
 {
     while (1) {
     }
 }
 
-/** @brief Fault 统一入口，先保存诊断寄存器再停止执行。 */
 static void Fault_Handler(void)
 {
     loader_fault_cfsr = SCB->CFSR;
@@ -41,40 +32,29 @@ static void Fault_Handler(void)
     }
 }
 
-/**
- * @brief Loader 自带 RAM 向量表。
- *
- * 烧录工具不会运行应用启动文件，因此这里显式提供初始栈指针、Fault、
- * SysTick 和 QUADSPI IRQ，其余中断指向 Default_Handler。
- */
 __attribute__((section(".isr_vector"), used))
-const uintptr_t loader_vectors[16U + QUADSPI_IRQn + 1U] = {
+const uintptr_t loader_vectors[16U + OCTOSPI2_IRQn + 1U] = {
     [0] = (uintptr_t)&__loader_stack_top__,
     [1 ... 2] = (uintptr_t)Default_Handler,
     [3 ... 6] = (uintptr_t)Fault_Handler,
     [7 ... 14] = (uintptr_t)Default_Handler,
     [15] = (uintptr_t)SysTick_Handler,
-    [16 ... (15U + QUADSPI_IRQn)] = (uintptr_t)Default_Handler,
-    [16U + QUADSPI_IRQn] = (uintptr_t)QUADSPI_IRQHandler
+    [16 ... (15U + OCTOSPI2_IRQn)] = (uintptr_t)Default_Handler,
+    [16U + OCTOSPI2_IRQn] = (uintptr_t)OCTOSPI2_IRQHandler
 };
 
-/** @brief HAL 毫秒节拍中断，使超时轮询在 Loader 中正常工作。 */
 void SysTick_Handler(void)
 {
     HAL_IncTick();
 }
 
-/** @brief HAL 兼容的不可恢复错误入口，停住等待调试器检查。 */
 void Error_Handler(void)
 {
     while (1) {
     }
 }
 
-/**
- * @brief 用板载 25 MHz HSE 配置 480 MHz SYSCLK 和 240 MHz HCLK。
- * @return 0 成功，-1 表示振荡器或总线时钟配置失败。
- */
+/** @brief 使用板载 24 MHz HSE 配置 550 MHz SYSCLK 和 275 MHz HCLK。 */
 static int loader_clock_init(void)
 {
     RCC_OscInitTypeDef oscillator = {0};
@@ -89,13 +69,14 @@ static int loader_clock_init(void)
     oscillator.HSEState = RCC_HSE_ON;
     oscillator.PLL.PLLState = RCC_PLL_ON;
     oscillator.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-    oscillator.PLL.PLLM = 5U;
-    oscillator.PLL.PLLN = 192U;
-    oscillator.PLL.PLLP = 2U;
-    oscillator.PLL.PLLQ = 2U;
+    oscillator.PLL.PLLM = 3U;
+    oscillator.PLL.PLLN = 68U;
+    oscillator.PLL.PLLP = 1U;
+    oscillator.PLL.PLLQ = 4U;
     oscillator.PLL.PLLR = 2U;
-    oscillator.PLL.PLLRGE = RCC_PLL1VCIRANGE_2;
+    oscillator.PLL.PLLRGE = RCC_PLL1VCIRANGE_3;
     oscillator.PLL.PLLVCOSEL = RCC_PLL1VCOWIDE;
+    oscillator.PLL.PLLFRACN = 6144U;
     if (HAL_RCC_OscConfig(&oscillator) != HAL_OK) {
         return -1;
     }
@@ -110,76 +91,82 @@ static int loader_clock_init(void)
     clock.APB1CLKDivider = RCC_APB1_DIV2;
     clock.APB2CLKDivider = RCC_APB2_DIV2;
     clock.APB4CLKDivider = RCC_APB4_DIV2;
-    return HAL_RCC_ClockConfig(&clock, FLASH_LATENCY_4) == HAL_OK ? 0 : -1;
+    return HAL_RCC_ClockConfig(&clock, FLASH_LATENCY_3) == HAL_OK ? 0 : -1;
 }
 
-/**
- * @brief 初始化 NAND 禁用脚、U7 QSPI 引脚、时钟和 QUADSPI 外设。
- * @return 0 成功，-1 表示外设时钟或 QSPI 初始化失败。
- * @note 引脚定义对应当前 STM32H750XBHx 开发板，不可直接用于 VBT6 新板。
- */
-static int loader_qspi_init(void)
+/** @brief 按 DM-MC-Board02 引脚初始化 OCTOSPI2 Port 1 Quad 模式。 */
+static int loader_ospi_init(void)
 {
     GPIO_InitTypeDef gpio = {0};
     RCC_PeriphCLKInitTypeDef peripheral_clock = {0};
+    OSPIM_CfgTypeDef manager = {0};
 
+    __HAL_RCC_GPIOA_CLK_ENABLE();
     __HAL_RCC_GPIOB_CLK_ENABLE();
-    __HAL_RCC_GPIOF_CLK_ENABLE();
-    __HAL_RCC_GPIOG_CLK_ENABLE();
-    __HAL_RCC_MDMA_CLK_ENABLE();
+    __HAL_RCC_GPIOD_CLK_ENABLE();
+    __HAL_RCC_GPIOE_CLK_ENABLE();
 
-    HAL_GPIO_WritePin(GPIOG, GPIO_PIN_9, GPIO_PIN_SET);
-    gpio.Pin = GPIO_PIN_9;
-    gpio.Mode = GPIO_MODE_OUTPUT_PP;
-    gpio.Pull = GPIO_NOPULL;
-    gpio.Speed = GPIO_SPEED_FREQ_LOW;
-    HAL_GPIO_Init(GPIOG, &gpio);
-
-    peripheral_clock.PeriphClockSelection = RCC_PERIPHCLK_QSPI;
-    peripheral_clock.QspiClockSelection = RCC_QSPICLKSOURCE_D1HCLK;
+    peripheral_clock.PeriphClockSelection = RCC_PERIPHCLK_OSPI;
+    peripheral_clock.OspiClockSelection = RCC_OSPICLKSOURCE_D1HCLK;
     if (HAL_RCCEx_PeriphCLKConfig(&peripheral_clock) != HAL_OK) {
         return -1;
     }
-    __HAL_RCC_QSPI_CLK_ENABLE();
+    __HAL_RCC_OCTOSPIM_CLK_ENABLE();
+    __HAL_RCC_OSPI2_CLK_ENABLE();
 
-    gpio.Pin = GPIO_PIN_6;
     gpio.Mode = GPIO_MODE_AF_PP;
     gpio.Pull = GPIO_NOPULL;
     gpio.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-    gpio.Alternate = GPIO_AF10_QUADSPI;
-    HAL_GPIO_Init(GPIOG, &gpio);
 
-    gpio.Pin = GPIO_PIN_6 | GPIO_PIN_7;
-    gpio.Alternate = GPIO_AF9_QUADSPI;
-    HAL_GPIO_Init(GPIOF, &gpio);
-    gpio.Pin = GPIO_PIN_8 | GPIO_PIN_9;
-    gpio.Alternate = GPIO_AF10_QUADSPI;
-    HAL_GPIO_Init(GPIOF, &gpio);
+    gpio.Pin = GPIO_PIN_1;
+    gpio.Alternate = GPIO_AF9_OCTOSPIM_P1;
+    HAL_GPIO_Init(GPIOA, &gpio);
+    gpio.Pin = GPIO_PIN_3;
+    gpio.Alternate = GPIO_AF6_OCTOSPIM_P1;
+    HAL_GPIO_Init(GPIOA, &gpio);
+
+    gpio.Pin = GPIO_PIN_0;
+    gpio.Alternate = GPIO_AF4_OCTOSPIM_P1;
+    HAL_GPIO_Init(GPIOB, &gpio);
     gpio.Pin = GPIO_PIN_2;
-    gpio.Alternate = GPIO_AF9_QUADSPI;
+    gpio.Alternate = GPIO_AF9_OCTOSPIM_P1;
     HAL_GPIO_Init(GPIOB, &gpio);
 
-    hqspi.Instance = QUADSPI;
-    hqspi.Init.ClockPrescaler = 3U;
-    hqspi.Init.FifoThreshold = 4U;
-    hqspi.Init.SampleShifting = QSPI_SAMPLE_SHIFTING_HALFCYCLE;
-    hqspi.Init.FlashSize = 24U;
-    hqspi.Init.ChipSelectHighTime = QSPI_CS_HIGH_TIME_4_CYCLE;
-    hqspi.Init.ClockMode = QSPI_CLOCK_MODE_0;
-    hqspi.Init.FlashID = QSPI_FLASH_ID_1;
-    hqspi.Init.DualFlash = QSPI_DUALFLASH_DISABLE;
-    return HAL_QSPI_Init(&hqspi) == HAL_OK ? 0 : -1;
+    gpio.Pin = GPIO_PIN_11;
+    gpio.Alternate = GPIO_AF9_OCTOSPIM_P1;
+    HAL_GPIO_Init(GPIOD, &gpio);
+    gpio.Pin = GPIO_PIN_11;
+    gpio.Alternate = GPIO_AF11_OCTOSPIM_P1;
+    HAL_GPIO_Init(GPIOE, &gpio);
+
+    hospi2.Instance = OCTOSPI2;
+    hospi2.Init.FifoThreshold = 8U;
+    hospi2.Init.DualQuad = HAL_OSPI_DUALQUAD_DISABLE;
+    hospi2.Init.MemoryType = HAL_OSPI_MEMTYPE_MICRON;
+    hospi2.Init.DeviceSize = 23U;
+    hospi2.Init.ChipSelectHighTime = 1U;
+    hospi2.Init.FreeRunningClock = HAL_OSPI_FREERUNCLK_DISABLE;
+    hospi2.Init.ClockMode = HAL_OSPI_CLOCK_MODE_3;
+    hospi2.Init.WrapSize = HAL_OSPI_WRAP_NOT_SUPPORTED;
+    hospi2.Init.ClockPrescaler = 3U;
+    hospi2.Init.SampleShifting = HAL_OSPI_SAMPLE_SHIFTING_HALFCYCLE;
+    hospi2.Init.DelayHoldQuarterCycle = HAL_OSPI_DHQC_DISABLE;
+    hospi2.Init.ChipSelectBoundary = 0U;
+    hospi2.Init.DelayBlockBypass = HAL_OSPI_DELAY_BLOCK_BYPASSED;
+    hospi2.Init.MaxTran = 0U;
+    hospi2.Init.Refresh = 0U;
+    if (HAL_OSPI_Init(&hospi2) != HAL_OK) {
+        return -1;
+    }
+
+    manager.ClkPort = 1U;
+    manager.NCSPort = 1U;
+    manager.IOLowPort = HAL_OSPIM_IOPORT_1_LOW;
+    return HAL_OSPIM_Config(&hospi2, &manager,
+                            HAL_OSPI_TIMEOUT_DEFAULT_VALUE) == HAL_OK ? 0 : -1;
 }
 
-/**
- * @brief 覆盖 HAL 的 QSPI MSP 弱函数。
- *
- * Loader 已在 loader_qspi_init() 中显式完成 GPIO/时钟配置，因此这里不
- * 再重复操作。
- *
- * @param[in] handle HAL 传入的 QSPI 句柄，当前无需使用。
- */
-void HAL_QSPI_MspInit(QSPI_HandleTypeDef *handle)
+void HAL_OSPI_MspInit(OSPI_HandleTypeDef *handle)
 {
     (void)handle;
 }
@@ -200,7 +187,7 @@ int loader_board_init(void)
         return -1;
     }
     loader_board_stage = 3;
-    if (loader_qspi_init() != 0) {
+    if (loader_ospi_init() != 0) {
         loader_board_stage = -3;
         return -1;
     }

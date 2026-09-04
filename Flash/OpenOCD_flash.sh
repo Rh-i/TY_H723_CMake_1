@@ -1,19 +1,40 @@
 #!/bin/bash
 
-# 获取当前脚本所在目录的父目录名称（项目名称）
+set -euo pipefail
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 PROJECT_NAME="$(basename "$PROJECT_DIR")"
+BUILD_TYPE="${1:-Debug}"
+BUILD_DIR="build/${BUILD_TYPE}"
+INTERNAL_IMAGE="${BUILD_DIR}/${PROJECT_NAME}_internal.hex"
+EXTERNAL_IMAGE="${BUILD_DIR}/${PROJECT_NAME}_usb_xip.bin"
 
-# 构建 ELF 文件路径（Linux原生使用正斜杠，无需转换）
-ELF_FILE="build/Debug/${PROJECT_NAME}.elf"
+cd "$PROJECT_DIR"
 
-# 检查文件是否存在
-if [ ! -f "$ELF_FILE" ]; then
-    echo "Error: ELF file not found at $ELF_FILE"
+if [ ! -f "$INTERNAL_IMAGE" ]; then
+    echo "Error: internal image not found at $INTERNAL_IMAGE"
+    exit 1
+fi
+if [ ! -s "$EXTERNAL_IMAGE" ]; then
+    echo "Error: external USB XIP image not found or empty at $EXTERNAL_IMAGE"
     exit 1
 fi
 
-# 使用标准化路径烧录
-# 注意：确保 openocd 在 PATH 中，或者使用绝对路径
-openocd -f Flash/daplink.cfg -c "program \"${ELF_FILE}\" verify reset exit"
+echo "Programming internal Flash: $INTERNAL_IMAGE"
+openocd -f Flash/daplink.cfg \
+    -c "program \"${INTERNAL_IMAGE}\" verify reset exit"
+
+echo "Programming W25Q64JV USB XIP payload: $EXTERNAL_IMAGE"
+openocd -f Flash/daplink.cfg \
+    -c "init" \
+    -c "reset halt" \
+    -c "mww 0x38003ffc 0x55535031" \
+    -c "resume" \
+    -c "sleep 1500" \
+    -c "halt" \
+    -c "flash probe stm32h7x.octospi2" \
+    -c "flash write_image erase \"${EXTERNAL_IMAGE}\" 0x70110000 bin" \
+    -c "verify_image \"${EXTERNAL_IMAGE}\" 0x70110000 bin" \
+    -c "reset run" \
+    -c "shutdown"

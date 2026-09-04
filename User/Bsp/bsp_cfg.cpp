@@ -18,7 +18,7 @@
  *        ✅ USART10    → bsp_uart10.init()    [IDLE RX DMA + FreeRTOS stream buffer]
  *        ✅ GPIO       → MX_GPIO_Init()       [BspGpio 仅封装]
  *        ✅ KEY (PA15) → key_user.init(...)   [纯软件轮询消抖，无 ISR，使用rtos进行轮询：200ms轮询 → 200ms消抖, 1s长按]
- *        ✅ USB        → BspUsb::instance()   [TinyUSB CDC]
+ *        ✅ USB        → BspUsb::instance()   [由默认任务启动后初始化]
  *
  */
 void bsp_init()
@@ -40,9 +40,6 @@ void bsp_init()
 
   // ── 按键（纯软件轮询消抖，200ms 轮询 → 200ms 消抖, 1s 长按）──
   key_user.init({KEY_GPIO_Port, KEY_Pin, true, 1U, 5U}); // 200ms×1 消抖, 200ms×5=1s 长按
-
-  // ── TinyUSB CDC 设备栈 ──
-  bsp_usb.init();
 
   // ── 蜂鸣器（TIM12 CH2 PB15 PWM 无源蜂鸣器）──
   bsp_buzzer.init({&htim12, TIM_CHANNEL_2, 6000000UL, 3000UL, 50, 50, 20000, 80, 400, 100});

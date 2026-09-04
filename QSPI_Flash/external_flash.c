@@ -39,7 +39,7 @@ ext_flash_result_t ext_flash_wait_ready(uint32_t timeout_ms)
 }
 
 /**
- * @brief 检查一个非空访问区间是否完全落在 32 MiB 器件内。
+ * @brief 检查一个非空访问区间是否完全落在 8 MiB 器件内。
  * @param[in] address Flash 内部起始偏移。
  * @param[in] length 访问长度，0 被视为非法。
  * @return 合法返回非 0，否则返回 0。
@@ -129,6 +129,12 @@ ext_flash_result_t ext_flash_write_mdma(uint32_t address, const void *data, size
 ext_flash_result_t ext_flash_memory_mapped_enable(void)
 {
     return flash_device_memory_mapped_enable() == 0 ? EXT_FLASH_OK : EXT_FLASH_ERROR_IO;
+}
+
+ext_flash_result_t ext_flash_memory_mapped_spi_enable(void)
+{
+    return flash_device_memory_mapped_spi_enable() == 0 ?
+           EXT_FLASH_OK : EXT_FLASH_ERROR_IO;
 }
 
 ext_flash_result_t ext_flash_memory_mapped_disable(void)

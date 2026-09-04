@@ -4,7 +4,7 @@
 #include "external_flash.h"
 #include "loader_board.h"
 
-#define LOADER_FLASH_BASE 0x90000000UL /**< 烧录工具使用的外置存储绝对基址。 */
+#define LOADER_FLASH_BASE FLASH_DEVICE_MAPPED_BASE /**< 烧录工具使用的外置存储绝对基址。 */
 #define LOADER_BUFFER_SIZE 256U /**< Verify 分块读取缓冲区大小。 */
 #define LOADER_API __attribute__((section(".loader_api"), used, noinline)) /**< 保留 Loader ABI 入口。 */
 
@@ -30,8 +30,8 @@ static void loader_clear_bss(void)
 }
 
 /**
- * @brief 将烧录工具传入的映射绝对地址转换为 W25Q256 内部偏移。
- * @param[in] address 0x90000000 起的绝对地址。
+ * @brief 将烧录工具传入的映射绝对地址转换为 W25Q64JV 内部偏移。
+ * @param[in] address 0x70000000 起的绝对地址。
  * @param[in] size 本次操作字节数；允许为 0。
  * @param[out] offset 转换后的器件内部偏移。
  * @return 地址区间合法返回 0，否则返回 -1。
@@ -82,7 +82,7 @@ LOADER_API int Init(uint8_t configure_memory_mapped_mode)
 
 /**
  * @brief External Loader 读取入口。
- * @param[in] address 0x90000000~0x91FFFFFF 范围内的绝对地址。
+ * @param[in] address 0x70000000~0x707FFFFF 范围内的绝对地址。
  * @param[in] size 读取字节数。
  * @param[out] buffer 烧录工具提供的 RAM 接收缓冲区。
  * @return 1 成功，0 表示参数或读取失败。
@@ -143,9 +143,9 @@ LOADER_API int SectorErase(uint32_t erase_start_address,
 }
 
 /**
- * @brief 擦除整颗 W25Q256。
+ * @brief 擦除整颗 W25Q64JV。
  * @return 1 成功，0 失败。
- * @warning 会清除全部 32 MiB 内容，最坏等待时间约 300 秒。
+ * @warning 会清除全部 8 MiB 内容，最坏等待时间约 300 秒。
  */
 LOADER_API int MassErase(void)
 {

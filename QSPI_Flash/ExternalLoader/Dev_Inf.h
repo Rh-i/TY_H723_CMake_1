@@ -22,7 +22,7 @@ typedef struct {
     SectorInfo sectors[10]; /**< 擦除布局，以 {0,0} 结束。 */
 } StorageInfoType;
 
-/** @brief 位于 `.Dev_Info` 段中的 W25Q256 固定描述符。 */
+/** @brief 位于 `.Dev_Info` 段中的 W25Q64JV 固定描述符。 */
 extern const StorageInfoType StorageInfo;
 
 #endif

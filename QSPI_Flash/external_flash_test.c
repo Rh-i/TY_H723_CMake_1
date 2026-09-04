@@ -16,7 +16,7 @@ typedef enum {
 
 /** @brief 单个数据测试用例的地址、长度与数据模式。 */
 typedef struct {
-    uint32_t address; /**< W25Q256 内部起始偏移。 */
+    uint32_t address; /**< W25Q64JV 内部起始偏移。 */
     uint32_t length; /**< 测试字节数，不超过 TEST_BUFFER_SIZE。 */
     test_pattern_t pattern; /**< 写入缓冲区的生成方式。 */
 } test_case_t;

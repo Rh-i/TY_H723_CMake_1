@@ -9,17 +9,17 @@
 #define W25Q_CMD_READ_SR2      0x35U
 #define W25Q_CMD_READ_SR3      0x15U
 #define W25Q_CMD_WRITE_ENABLE  0x06U
-#define W25Q_CMD_READ_4BYTE     0x13U
-#define W25Q_CMD_PROGRAM_4BYTE  0x12U
-#define W25Q_CMD_ERASE_4K_4BYTE 0x21U
+#define W25Q_CMD_READ           0x03U
+#define W25Q_CMD_PROGRAM        0x02U
+#define W25Q_CMD_ERASE_4K       0x20U
 #define W25Q_CMD_WRITE_SR2      0x31U
-#define W25Q_CMD_QUAD_READ_4BYTE 0x6CU
-#define W25Q_CMD_QUAD_PROGRAM_4BYTE 0x34U
+#define W25Q_CMD_QUAD_READ      0x6BU
+#define W25Q_CMD_QUAD_PROGRAM   0x32U
 #define W25Q_QUAD_READ_DUMMY_CYCLES 8U
 #define W25Q_SR2_QUAD_ENABLE    0x02U
 #define W25Q_CMD_CHIP_ERASE     0xC7U
 
-/* 本文件实现 W25Q256 命令层；所有地址均为器件内部字节偏移。 */
+/* 本文件实现 W25Q64JV 命令层；所有地址均为器件内部字节偏移。 */
 
 int flash_device_reset(void)
 {
@@ -98,7 +98,7 @@ int flash_device_wait_ready(uint32_t timeout_ms)
 
 int flash_device_read(uint32_t address, void *data, uint32_t length)
 {
-    return flash_port_address_receive(W25Q_CMD_READ_4BYTE, address, data, length);
+    return flash_port_address_receive(W25Q_CMD_READ, address, data, length);
 }
 
 int flash_device_program_page(uint32_t address, const void *data, uint32_t length)
@@ -109,7 +109,7 @@ int flash_device_program_page(uint32_t address, const void *data, uint32_t lengt
         return -1;
     }
     if (flash_device_write_enable() != 0 ||
-        flash_port_address_transmit(W25Q_CMD_PROGRAM_4BYTE, address, data, length) != 0) {
+        flash_port_address_transmit(W25Q_CMD_PROGRAM, address, data, length) != 0) {
         return -1;
     }
     return flash_device_wait_ready(1000U);
@@ -121,7 +121,7 @@ int flash_device_erase_sector(uint32_t address)
         return -1;
     }
     if (flash_device_write_enable() != 0 ||
-        flash_port_address_command(W25Q_CMD_ERASE_4K_4BYTE, address) != 0) {
+        flash_port_address_command(W25Q_CMD_ERASE_4K, address) != 0) {
         return -1;
     }
     return flash_device_wait_ready(5000U);
@@ -161,7 +161,7 @@ int flash_device_enable_quad(void)
 
 int flash_device_read_mdma(uint32_t address, void *data, uint32_t length)
 {
-    return flash_port_address_receive_mdma(W25Q_CMD_READ_4BYTE, address,
+    return flash_port_address_receive_mdma(W25Q_CMD_READ, address,
                                            data, length, 0U, FLASH_PORT_DATA_1_LINE);
 }
 
@@ -172,7 +172,7 @@ int flash_device_program_page_mdma(uint32_t address, const void *data, uint32_t 
         return -1;
     }
     if (flash_device_write_enable() != 0 ||
-        flash_port_address_transmit_mdma(W25Q_CMD_PROGRAM_4BYTE, address,
+        flash_port_address_transmit_mdma(W25Q_CMD_PROGRAM, address,
                                          data, length, FLASH_PORT_DATA_1_LINE) != 0) {
         return -1;
     }
@@ -181,8 +181,15 @@ int flash_device_program_page_mdma(uint32_t address, const void *data, uint32_t 
 
 int flash_device_memory_mapped_enable(void)
 {
-    return flash_port_memory_mapped_enable(W25Q_CMD_QUAD_READ_4BYTE,
+    return flash_port_memory_mapped_enable(W25Q_CMD_QUAD_READ,
+                                           W25Q_CMD_QUAD_PROGRAM,
                                            W25Q_QUAD_READ_DUMMY_CYCLES);
+}
+
+int flash_device_memory_mapped_spi_enable(void)
+{
+    return flash_port_memory_mapped_spi_enable(W25Q_CMD_READ,
+                                                W25Q_CMD_PROGRAM);
 }
 
 int flash_device_memory_mapped_disable(void)

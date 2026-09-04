@@ -5,9 +5,7 @@
 
 #include "stm32h7xx_hal.h"
 
-#define QSPI_MAPPED_BASE 0x90000000UL /**< STM32H7 QUADSPI Bank 1 映射基址。 */
-
-/* 由 STM32H750xx_FLASH.ld 导出：VMA 起止地址和内部 Flash 加载镜像地址。 */
+/* 由 STM32H723xG_flash.ld 导出：VMA 起止地址和内部 Flash 加载镜像地址。 */
 extern const uint8_t __qspi_text_start__[];
 extern const uint8_t __qspi_text_end__[];
 extern const uint8_t __qspi_text_load_start__[];
@@ -25,7 +23,7 @@ static uint32_t ext_flash_xip_function(uint32_t value)
 
 /**
  * @brief 擦除镜像覆盖的全部扇区并把内部加载镜像写入外置 Flash。
- * @param[in] flash_offset 镜像在 W25Q256 内部的起始偏移。
+ * @param[in] flash_offset 镜像在 W25Q64JV 内部的起始偏移。
  * @param[in] image 内部 Flash 中的加载镜像。
  * @param[in] image_size 镜像字节数。
  * @return EXT_FLASH_OK 或首个擦写错误。
@@ -53,7 +51,7 @@ ext_flash_result_t ext_flash_run_xip_test(ext_flash_xip_report_t *report)
     typedef uint32_t (*xip_function_t)(uint32_t);
     uintptr_t mapped_start = (uintptr_t)__qspi_text_start__;
     uint32_t image_size = (uint32_t)(__qspi_text_end__ - __qspi_text_start__);
-    uint32_t flash_offset = (uint32_t)(mapped_start - QSPI_MAPPED_BASE);
+    uint32_t flash_offset = (uint32_t)(mapped_start - FLASH_DEVICE_MAPPED_BASE);
     ext_flash_result_t result;
 
     if (report == NULL || image_size == 0U ||

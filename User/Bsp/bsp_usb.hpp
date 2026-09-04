@@ -11,9 +11,9 @@
  *
  * 该文件将 USB 设备抽象为一个类对象，向上层提供：
  * - 初始化与周期任务驱动
- * - CDC 收发接口
+ * - 构建期互斥的 CDC 或 Generic HID 收发接口
  * - 连接状态查询
- * - CDC 接收回调注册
+ * - 当前传输类接收回调注册
  */
 
 #ifndef __BSP_USB_HPP__
@@ -25,13 +25,22 @@
 
 /**
  * @class BspUsb
- * @brief USB BSP 单例类，负责 TinyUSB Device CDC 的初始化与数据收发。
+ * @brief USB BSP 单例类，负责 TinyUSB CDC/HID 的初始化与数据收发。
  */
 class BspUsb
 {
 public:
+  /** @brief 当前固件唯一编译进来的 USB 设备类。 */
+  enum class DeviceClass : uint8_t
+  {
+    CDC,
+    HID
+  };
+
+  static constexpr uint32_t HID_REPORT_SIZE = 64U;
+
   /**
-   * @brief CDC 接收回调函数类型。
+   * @brief 当前 USB 传输类的接收回调函数类型。
    * @param data 本次接收的数据指针。
    * @param len 本次接收的数据长度（字节）。
    * @param user_ctx 用户上下文指针，由 set_rx_callback 传入。
@@ -57,13 +66,19 @@ public:
    * @details
    * 该函数应在独立任务中高频调用（例如 1ms 周期），用于：
    * - 驱动 TinyUSB 状态机
-   * - 轮询 CDC 接收数据
+   * - 轮询当前 CDC/HID 类的接收数据
    * - 将接收数据分发给已注册回调
    */
   void task();
 
+  /** @brief 返回当前构建选择的唯一 USB 设备类。 */
+  DeviceClass active_class() const;
+
+  /** @brief 查询外置 XIP 和 TinyUSB 是否均初始化成功。 */
+  bool initialized() const;
+
   /**
-   * @brief 查询 USB CDC 是否就绪可通信。
+   * @brief 查询当前构建选择的 USB 类是否就绪可通信。
    * @return true 已挂载且满足发送门控条件；false 否则。
    */
   bool is_ready() const;
@@ -107,7 +122,24 @@ public:
   uint32_t cdc_available() const;
 
   /**
-   * @brief 注册 CDC 接收回调。
+   * @brief 发送一个 Generic HID Input Report。
+   * @param data 有效载荷；不足 64 字节时自动补零。
+   * @param len 有效载荷长度，范围 1~64 字节。
+   * @return true 已提交完整 64 字节报告；false 未就绪或参数非法。
+   */
+  bool hid_write(const uint8_t* data, uint32_t len);
+
+  /** @brief 从 HID Output Report 接收队列读取数据。 */
+  uint32_t hid_read(uint8_t* data, uint32_t len);
+
+  /** @brief 返回 HID Output Report 接收队列的可读字节数。 */
+  uint32_t hid_available() const;
+
+  /** @brief TinyUSB HID OUT 回调入口；应用代码不应直接调用。 */
+  void accept_hid_report(const uint8_t* data, uint32_t len);
+
+  /**
+   * @brief 注册当前 USB 传输类的接收回调。
    * @param cb 回调函数指针，传入 nullptr 可注销回调。
    * @param user_ctx 用户上下文指针，将原样传回回调。
    */
@@ -115,7 +147,7 @@ public:
 
 private:
   /**
-   * @brief 处理 CDC 接收轮询并分发回调。
+   * @brief 处理当前 USB 类的接收轮询并分发回调。
    */
   void process_rx();
 
@@ -124,6 +156,12 @@ private:
   RxCallback _rx_callback = nullptr;
   void*      _rx_user_ctx = nullptr;
   bool       _require_dtr = false;
+  bool       _initialized = false;
+
+  static constexpr uint16_t HID_RX_BUFFER_SIZE = 256U;
+  uint8_t           _hid_rx_buffer[HID_RX_BUFFER_SIZE] = {};
+  volatile uint16_t _hid_rx_head = 0U;
+  volatile uint16_t _hid_rx_tail = 0U;
 };
 
 #endif

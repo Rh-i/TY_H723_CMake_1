@@ -5,6 +5,10 @@
 
 #include "external_flash.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /** @brief 自动数据测试当前执行到的阶段，便于在 GDB 中定位失败步骤。 */
 typedef enum {
     EXT_FLASH_TEST_STAGE_NONE = 0, /**< 尚未开始。 */
@@ -36,8 +40,12 @@ typedef struct {
  *
  * @param[out] report 接收过程与失败诊断；不可为 NULL。
  * @return EXT_FLASH_OK 表示全部用例通过，否则返回首个失败结果。
- * @warning 会改写 Flash 偏移 0x01FFE000 到 0x01FFFFFF。
+ * @warning 会改写 Flash 偏移 0x007FE000 到 0x007FFFFF。
  */
 ext_flash_result_t ext_flash_run_data_tests(ext_flash_test_report_t *report);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -1,0 +1,3 @@
+# DM-MC02 native USB device (not the separate CMSIS-DAP VCOM port).
+SUBSYSTEM=="tty", ATTRS{idVendor}=="cafe", ATTRS{idProduct}=="4001", MODE="0660", GROUP="dialout", TAG+="uaccess"
+KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="cafe", ATTRS{idProduct}=="4002", MODE="0660", GROUP="plugdev", TAG+="uaccess"
